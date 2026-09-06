@@ -22,13 +22,6 @@
 
 <body>
     <nav class="topnav">
-<<<<<<< HEAD
-        <a href="{{ url_for('caregiver') }}">CareGiver Home</a>
-        <a href="{{ url_for('add_meds') }}">Medication</a>
-        <a href="{{ url_for('log_tasks') }}">Tasks</a>
-        <a href="{{ url_for('caregiver') }}">Settings</a>
-        <a href="{{ url_for('logout') }}">Logout</a>
-=======
         <a class="nav-logo" href="{{ url_for('caregiver') }}" aria-label="Connect and Care home">
             <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Connect and Care logo">
         </a>
@@ -37,7 +30,6 @@
         <a href="{{ url_for('log_tasks') }}">logTask</a>
         <a href="{{ url_for('caregiver') }}">settings</a>
         <a href="{{ url_for('logout') }}">logout</a>
->>>>>>> 451eb7dddfca43fa71605316fc5d084cf7b73356
     </nav>
     {% if current_user.is_authenticated %}
         <h1>Hi {{ current_user.name }}!</h1>
