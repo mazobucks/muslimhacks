@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     statusEl.textContent = "Starting camera…";
     await startWebcam();
     await ensurePoseLandmarker();
-    statusEl.textContent = "Put the line on waist level or neck level if sitting. Select a prayer to begin.";
+    statusEl.textContent = "Put the line on waist level / neck level (sitting). Select a prayer to begin.";
 
     previewLoop(); // start drawing line + nose dot immediately, continuously
   } catch (err) {

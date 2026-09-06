@@ -32,7 +32,7 @@
     </nav>
     {% if current_user.is_authenticated %}
         <div class="imgName"> 
-            <h1>Hi {{ current_user.name }}!</h1>
+            <h1>Asalamualaikum {{ current_user.name }}!</h1>
             <img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ current_user.full_name }}">
         </div>
     {% endif %}
