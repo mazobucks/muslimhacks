@@ -211,20 +211,15 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("login"))
-  
-@app.route("/elder")
-@login_required
-def elder():
-    if current_user.role != "elder":
-        abort(403)
 
+def build_reminder_context(elder_id):
     db = get_db()
     now = datetime.now()
     today = now.strftime("%Y-%m-%d")
 
     medication_rows = db.execute(
             "SELECT id, name, dosage, schedule_time FROM Medications WHERE elder_id = ? ORDER BY schedule_time, name",
-            [current_user.user_id]
+            [elder_id]
     ).fetchall()
     medications = []
     for row in medication_rows:
@@ -234,7 +229,7 @@ def elder():
                 """SELECT status FROM TaskLogs WHERE reminder_id = (
                          SELECT id FROM Reminders WHERE elder_id = ? AND category = 'medication' AND title = ? LIMIT 1
                      ) AND date(logged_at) = ? ORDER BY logged_at DESC LIMIT 1""",
-                [current_user.user_id, row[1], today]
+                [elder_id, row[1], today]
         ).fetchone()
         medications.append({
                 "id": row[0], "name": row[1], "dosage": row[2],
@@ -247,16 +242,24 @@ def elder():
             """SELECT id, title, description, frequency, scheduled_time
                  FROM Reminders WHERE elder_id = ? AND category = 'custom' AND active = 1
                  ORDER BY scheduled_time, id""",
-            [current_user.user_id]
+            [elder_id]
     ).fetchall()
 
     prayer = get_prayer_summary()
-    prayer_log = get_today_task_log(current_user.user_id, prayer["current"]["name"], "prayer", today)
+    prayer_log = get_today_task_log(elder_id, prayer["current"]["name"], "prayer", today)
     prayer["current"]["done"] = bool(prayer_log and prayer_log[0] == "done")
 
-    return render_template("elder.html", prayer=prayer, medications=medications,
-                                                 custom_reminders=custom_reminders, now=now)
+    return prayer, medications, custom_reminders, now
 
+
+@app.route("/elder")
+@login_required
+def elder():
+    if current_user.role != "elder":
+        abort(403)
+    prayer, medications, custom_reminders, now = build_reminder_context(current_user.user_id)
+    return render_template("elder.html", prayer=prayer, medications=medications,
+                                                 custom_reminders=custom_reminders, now=now)  
 
 def parse_schedule_time(value):
     if not value:
@@ -360,23 +363,32 @@ def medication_done(medication_id):
 @app.route("/elder/reminders", methods=["POST"])
 @login_required
 def add_elder_reminder():
-    if current_user.role != "elder":
+    if current_user.role == "elder":
+        elder_id = current_user.user_id
+    elif current_user.role == "caregiver":
+        elder_id = get_linked_elder_id()
+        if elder_id is None:
+            flash("Add an elder before adding a reminder.")
+            return redirect(url_for("caregiver"))
+    else:
         abort(403)
+
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip()
     frequency = request.form.get("frequency", "one_time")
     scheduled_time = request.form.get("scheduled_time", "").strip()
     if not title or frequency not in {"one_time", "daily", "weekly"}:
         flash("A reminder title and valid frequency are required.")
-        return redirect(url_for("elder"))
+        return redirect(url_for("elder") if current_user.role == "elder" else url_for("caregiver_log_tasks"))
+
     db = get_db()
     db.execute(
             """INSERT INTO Reminders (elder_id, created_by, category, title, description, frequency, scheduled_time)
                  VALUES (?, ?, 'custom', ?, ?, ?, ?)""",
-            [current_user.user_id, current_user.user_id, title, description, frequency, scheduled_time or None]
+            [elder_id, current_user.user_id, title, description, frequency, scheduled_time or None]
     )
     db.commit()
-    return redirect(url_for("elder"))
+    return redirect(url_for("elder") if current_user.role == "elder" else url_for("log_tasks"))
 
 FARD_RAKAHS = {
     "Fajr": 2,
@@ -750,6 +762,83 @@ def remove_medication(medication_id):
     flash("Medication removed.")
     return redirect(url_for("add_meds"))
 
+
+@app.route("/caregiver/log_tasks")
+@login_required
+def log_tasks():
+    if current_user.role != "caregiver":
+        abort(403)
+    elder_id = get_linked_elder_id()
+    if elder_id is None:
+        flash("Add an elder before logging tasks.")
+        return redirect(url_for("caregiver"))
+
+    prayer, medications, custom_reminders, now = build_reminder_context(elder_id)
+    return render_template("log_tasks.html", prayer=prayer, medications=medications,
+                                                 custom_reminders=custom_reminders, now=now)
+
+
+@app.route("/caregiver/medications/<int:medication_id>/done", methods=["POST"])
+@login_required
+def caregiver_medication_done(medication_id):
+    if current_user.role != "caregiver":
+        abort(403)
+    elder_id = get_linked_elder_id()
+    if elder_id is None:
+        abort(403)
+
+    db = get_db()
+    medication = db.execute(
+            "SELECT name FROM Medications WHERE id = ? AND elder_id = ?",
+            [medication_id, elder_id]
+    ).fetchone()
+    if not medication:
+        abort(404)
+
+    reminder_id = get_or_create_task_reminder(elder_id, medication[0], "medication", current_user.user_id)
+    db.execute("INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
+                         [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+    db.commit()
+    return redirect(url_for("log_tasks"))
+
+
+@app.route("/caregiver/prayer/<prayer_name>/done", methods=["POST"])
+@login_required
+def caregiver_prayer_done(prayer_name):
+    if current_user.role != "caregiver":
+        abort(403)
+    elder_id = get_linked_elder_id()
+    if elder_id is None:
+        abort(403)
+
+    db = get_db()
+    reminder_id = get_or_create_prayer_reminder(elder_id, prayer_name)
+    db.execute("INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
+                         [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+    db.commit()
+    return redirect(url_for("log_tasks"))
+
+
+@app.route("/caregiver/reminders/<int:reminder_id>/done", methods=["POST"])
+@login_required
+def caregiver_reminder_done(reminder_id):
+    if current_user.role != "caregiver":
+        abort(403)
+    elder_id = get_linked_elder_id()
+    if elder_id is None:
+        abort(403)
+
+    db = get_db()
+    reminder = db.execute(
+            "SELECT id FROM Reminders WHERE id = ? AND elder_id = ?", [reminder_id, elder_id]
+    ).fetchone()
+    if not reminder:
+        abort(404)
+
+    db.execute("INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
+                         [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+    db.commit()
+    return redirect(url_for("log_tasks"))
 
 # Cleans up a database connection.
 @app.teardown_appcontext
