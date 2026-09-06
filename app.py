@@ -1286,7 +1286,6 @@ def signup():
         flash("That username is already taken.")
         return redirect(url_for("signup"))
 
-    flash("Account created! Please log in.")
     return redirect(url_for("login_form"))
 
 @app.context_processor

@@ -2,38 +2,207 @@
 {% block title %}Add Medication{% endblock %}
 
 {% block content %}
-<h2>Medications for {{ elder.full_name }}</h2>
-<img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ elder.full_name }}">
+<style>
+  body.add-meds-page {
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #55247c;
+  }
 
-<form method="post" action="{{ url_for('add_meds') }}">
-  <label for="name">Medication name</label>
-  <input type="text" id="name" name="name" required>
+  .add-meds-container {
+    width: min(100%, 480px);
+    margin: 0 auto;
+    padding: 2rem;
+    background: #1c171d;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
 
-  <label for="dosage">Dosage</label>
-  <input type="text" id="dosage" name="dosage" placeholder="e.g. 500mg">
+  .add-meds-title {
+    text-align: center;
+    color: #da9fe9;
+    margin-bottom: 2rem;
+    font-size: 1.75rem;
+  }
 
-  <label for="schedule_time">Schedule time</label>
-  <input type="time" id="schedule_time" name="schedule_time">
+  .add-meds-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
 
-  <div class="modal-actions">
-    <a href="{{ url_for('caregiver') }}">Cancel</a>
-    <button type="submit">Add medication</button>
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .add-meds-form label {
+    margin-bottom: 0.5rem;
+    color: #da9fe9;
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+
+  .add-meds-form input {
+    padding: 0.75rem 1rem;
+    border: 1px solid #bdc3c7;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .add-meds-form input:focus {
+    outline: none;
+    border-color: rgb(155, 80, 226);
+    box-shadow: 0 0 0 3px rgba(155, 80, 226, 0.1);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .add-meds-form .btn-cancel,
+  .add-meds-form .btn-submit {
+    display: inline-block;
+    min-width: 120px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, color 150ms ease;
+    text-align: center;
+  }
+
+  .add-meds-form .btn-submit {
+    background-color: rgb(155, 80, 226);
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(5, 8, 12, 0.4);
+  }
+
+  .add-meds-form .btn-submit:hover {
+    transform: translateY(-4px);
+    background-color: #a050e2;
+    box-shadow: 0 10px 28px rgba(5, 8, 12, 0.6);
+  }
+
+  .add-meds-form .btn-cancel {
+    background-color: #ecf0f1;
+    color: #34495e;
+    border: 1px solid #bdc3c7;
+  }
+
+  .add-meds-form .btn-cancel:hover {
+    transform: translateY(-2px);
+    background-color: #d5dbdf;
+    box-shadow: 0 6px 12px rgba(5, 8, 12, 0.15);
+  }
+
+  .medications-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #444;
+  }
+
+  .medications-title {
+    color: #da9fe9;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  #medication-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  #medication-list li {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: #2a2530;
+    border-radius: 6px;
+    color: #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #medication-list strong {
+    color: #da9fe9;
+  }
+
+  #medication-list form {
+    margin: 0;
+  }
+
+  #medication-list button {
+    padding: 0.5rem 1rem;
+    background-color: #c33;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+  }
+
+  #medication-list button:hover {
+    background-color: #a00;
+  }
+</style>
+
+<div class="add-meds-container">
+  <h2 class="add-meds-title">Medications for {{ elder.full_name }}</h2>
+
+  <form method="post" action="{{ url_for('add_meds') }}" class="add-meds-form">
+    <div class="form-group">
+      <label for="name">Medication name</label>
+      <input type="text" id="name" name="name" required>
+    </div>
+
+    <div class="form-group">
+      <label for="dosage">Dosage</label>
+      <input type="text" id="dosage" name="dosage" placeholder="e.g. 500mg">
+    </div>
+
+    <div class="form-group">
+      <label for="schedule_time">Schedule time</label>
+      <input type="time" id="schedule_time" name="schedule_time">
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('caregiver') }}" class="btn-cancel">Cancel</a>
+      <button type="submit" class="btn-submit">Add medication</button>
+    </div>
+  </form>
+
+  <div class="medications-section">
+    <h3 class="medications-title">Current medications</h3>
+    <ul id="medication-list">
+      {% for med in medications %}
+        <li>
+          <div>
+            <strong>{{ med.name }}</strong>
+            {% if med.dosage %} &mdash; {{ med.dosage }}{% endif %}
+            {% if med.schedule_time %} &mdash; {{ med.schedule_time }}{% endif %}
+          </div>
+          <form method="post" action="{{ url_for('remove_medication', medication_id=med.id) }}">
+            <button type="submit">Remove</button>
+          </form>
+        </li>
+      {% else %}
+        <li>No medications added yet.</li>
+      {% endfor %}
+    </ul>
   </div>
-</form>
-
-<h3>Current medications</h3>
-<ul id="medication-list">
-  {% for med in medications %}
-    <li>
-      <strong>{{ med.name }}</strong>
-      {% if med.dosage %} &mdash; {{ med.dosage }}{% endif %}
-      {% if med.schedule_time %} &mdash; {{ med.schedule_time }}{% endif %}
-      <form method="post" action="{{ url_for('remove_medication', medication_id=med.id) }}" style="display:inline;">
-        <button type="submit">Remove</button>
-      </form>
-    </li>
-  {% else %}
-    <li>No medications added yet.</li>
-  {% endfor %}
-</ul>
+</div>
 {% endblock %}

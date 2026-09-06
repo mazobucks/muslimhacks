@@ -2,40 +2,191 @@
 {% block title %}Add Secondary Caregiver{% endblock %}
 
 {% block content %}
-<h2>Add secondary caregiver</h2>
+<style>
+  body.add-secondary-page {
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #55247c;
+  }
 
-<form method="post" action="{{ url_for('add_secondary_caregiver') }}">
-  <label for="full_name">Full name</label>
-  <input type="text" id="full_name" name="full_name" required>
+  .add-secondary-container {
+    width: min(100%, 480px);
+    margin: 0 auto;
+    padding: 2rem;
+    background: #1c171d;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
 
-  <label for="username">Username (for their login)</label>
-  <input type="text" id="username" name="username" required>
+  .add-secondary-title {
+    text-align: center;
+    color: #da9fe9;
+    margin-bottom: 2rem;
+    font-size: 1.75rem;
+  }
 
-  <label for="password">Password</label>
-  <input type="password" id="password" name="password" required>
+  .add-secondary-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
 
-  <fieldset>
-    <legend>Responsibilities</legend>
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
 
-    <label>
-      <input type="checkbox" name="custom">
-      Custom Tasks
-    </label>
+  .add-secondary-form label {
+    margin-bottom: 0.5rem;
+    color: #da9fe9;
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
 
-    <label>
-      <input type="checkbox" name="medication">
-      Medication
-    </label>
+  .add-secondary-form input {
+    padding: 0.75rem 1rem;
+    border: 1px solid #bdc3c7;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
 
-    <label>
-      <input type="checkbox" name="prayer">
-      Prayer
-    </label>
-  </fieldset>
+  .add-secondary-form input:focus {
+    outline: none;
+    border-color: rgb(155, 80, 226);
+    box-shadow: 0 0 0 3px rgba(155, 80, 226, 0.1);
+  }
 
-  <div class="modal-actions">
-    <a href="{{ url_for('caregiver') }}">Cancel</a>
-    <button type="submit">Add caregiver</button>
-  </div>
-</form>
+  .responsibilities-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .responsibilities-section legend {
+    color: #da9fe9;
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .responsibilities-section fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .responsibilities-section label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+    color: #e0e0e0;
+    font-weight: normal;
+    font-size: 0.95rem;
+  }
+
+  .responsibilities-section input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .add-secondary-form .btn-cancel,
+  .add-secondary-form .btn-submit {
+    display: inline-block;
+    min-width: 120px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, color 150ms ease;
+    text-align: center;
+  }
+
+  .add-secondary-form .btn-submit {
+    background-color: rgb(155, 80, 226);
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(5, 8, 12, 0.4);
+  }
+
+  .add-secondary-form .btn-submit:hover {
+    transform: translateY(-4px);
+    background-color: #a050e2;
+    box-shadow: 0 10px 28px rgba(5, 8, 12, 0.6);
+  }
+
+  .add-secondary-form .btn-cancel {
+    background-color: #ecf0f1;
+    color: #34495e;
+    border: 1px solid #bdc3c7;
+  }
+
+  .add-secondary-form .btn-cancel:hover {
+    transform: translateY(-2px);
+    background-color: #d5dbdf;
+    box-shadow: 0 6px 12px rgba(5, 8, 12, 0.15);
+  }
+</style>
+
+<div class="add-secondary-container">
+  <h2 class="add-secondary-title">Add secondary caregiver</h2>
+
+  <form method="post" action="{{ url_for('add_secondary_caregiver') }}" class="add-secondary-form">
+    <div class="form-group">
+      <label for="full_name">Full name</label>
+      <input type="text" id="full_name" name="full_name" required>
+    </div>
+
+    <div class="form-group">
+      <label for="username">Username (for their login)</label>
+      <input type="text" id="username" name="username" required>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required>
+    </div>
+
+    <div class="responsibilities-section">
+      <fieldset>
+        <legend>Responsibilities</legend>
+
+        <label>
+          <input type="checkbox" name="custom">
+          Custom Tasks
+        </label>
+
+        <label>
+          <input type="checkbox" name="medication">
+          Medication
+        </label>
+
+        <label>
+          <input type="checkbox" name="prayer">
+          Prayer
+        </label>
+      </fieldset>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('caregiver') }}" class="btn-cancel">Cancel</a>
+      <button type="submit" class="btn-submit">Add caregiver</button>
+    </div>
+  </form>
+</div>
 {% endblock %}

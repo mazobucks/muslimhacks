@@ -6,68 +6,7 @@
     <title>Welcome</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     <style>
-        .action-box {
-            display: block;
-            width: fit-content;
-            max-width: 100%;
-            margin: 1.5rem auto 0;
-            border: 1px solid #2b3440;
-            border-radius: 16px;
-            padding: 1.25rem 1.5rem;
-            background: linear-gradient(180deg, #2f3a48 0%, #26313e 100%);
-            box-shadow: 0 12px 32px rgba(10, 14, 18, 0.6);
-            color: #ffffff;
-        }
-
-        .actions {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-            padding: 0.25rem;
-        }
-
-        .actions .btn {
-            min-width: 120px;
-            text-align: center;
-            margin: 0.25rem;
-            transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, color 150ms ease;
-            color: #ffffff !important;
-            background-color: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-            padding: 0.5rem 0.75rem;
-            border-radius: 8px;
-            box-shadow: 0 6px 18px rgba(5,8,12,0.4);
-        }
-
-        .actions .btn:hover {
-            transform: translateY(-4px);
-            background-color: rgba(255,255,255,0.12);
-            box-shadow: 0 10px 28px rgba(5,8,12,0.6);
-            color: #ffffff !important;
-        }
-
-        /* stronger contrast for primary/secondary if those classes exist */
-        .actions .btn.btn-primary {
-            background-color: rgb(155, 80, 226);
-            border-color: #6b7f97;
-        }
-
-        .actions .btn.btn-primary:hover {
-            background-color: #2e465a;
-            border-color: #2a3b4a;
-        }
-
-        .actions .btn.btn-secondary {
-            background-color: rgb(155, 80, 226);
-            border-color: #8b9aa9;
-        }
-
-        .actions .btn.btn-secondary:hover {
-            background-color: #4b5e6c;
-            border-color: #394c56;
-        }
+        
         
     </style>
 </head>
@@ -78,8 +17,8 @@
 
         <div class="action-box">
             <div class="actions">
-                <a href="{{ url_for('signup') }}" class="btn btn-primary">Sign Up</a>
-                <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+                <a href="{{ url_for('login') }}" class="btn btn-primary">Login in</a>
+                <a href="{{ url_for('signup') }}" class="btn btn-secondary">Sign up</a>
             </div>
         </div>
     </div>
