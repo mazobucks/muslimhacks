@@ -79,4 +79,8 @@ tasks:
 - encryption passwords
 - responsiblities access
 
+- voice for prayer
+- voice assist for elder
+- notifications of complettion to respective caregivers
+- medications adding is not working
 

@@ -7,6 +7,17 @@
     <title>{% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     {% block head %} {% endblock %}
+
+    <!-- Load script as defer to run after DOM loads -->
+    <!-- Load custom logic script FIRST -->
+    <script src="{{ url_for('static', filename='js/elevenlabs.js') }}"></script>
+
+    <!-- Load widget embed script SECOND -->
+    <script
+        src="https://unpkg.com/@elevenlabs/convai-widget-embed"
+        async
+        type="text/javascript">
+    </script>
 </head>
 
 <body>
@@ -22,7 +33,6 @@
     </nav>
     {% if current_user.is_authenticated %}
         <h1>Hi {{ current_user.name }}!</h1>
-        
     {% endif %}
 
     {% with messages = get_flashed_messages() %}
@@ -34,10 +44,22 @@
             </ul>
         {% endif %}
     {% endwith %}
+
+    <!-- Shown/hidden by elevenlabs.js when a voice-triggered action (like add_task) fails -->
+    <div id="voice-action-error" class="flashes" style="display: none;">
+        <li id="voice-action-error-text"></li>
+    </div>
+
     <div class="container">
         {% block content %} {% endblock %}
     </div>
     {% block scripts %} {% endblock %}
-</body>
 
+    <!-- Native Widget Tag (Visible) -->
+    <elevenlabs-convai
+        agent-id="{{ ELEVENLABS_AGENT_ID }}"
+        {% if current_elder %}dynamic-variables='{"elder_name": "{{ current_elder.full_name }}"}'{% endif %}
+    ></elevenlabs-convai>
+</body>
+    
 </html>

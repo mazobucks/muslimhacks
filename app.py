@@ -13,6 +13,7 @@ import requests
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16) # This is necessary for flash!
+app.config["ELEVENLABS_AGENT_ID"] = "agent_0301m1tr1k8jf4d8p9cjf0cmss59"
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -24,12 +25,12 @@ class Elder:
         self.full_name = full_name
 
 class Caregiver:
-    def __init__(self, id, full_name, elder_id, is_primary, diet=0, medication=0, prayer=0):
+    def __init__(self, id, full_name, elder_id, is_primary, custom=0, medication=0, prayer=0):
         self.id = id
         self.full_name = full_name
         self.elder_id = elder_id
         self.is_primary = is_primary
-        self.diet = diet
+        self.custom = custom
         self.medication = medication
         self.prayer = prayer
 
@@ -91,7 +92,7 @@ if not database_exists:
 
     db.execute("""CREATE TABLE IF NOT EXISTS Responsibilities (
         caregiver_id INTEGER PRIMARY KEY,
-        diet         BOOLEAN NOT NULL DEFAULT 1,
+        custom         BOOLEAN NOT NULL DEFAULT 1,
         medication   BOOLEAN NOT NULL DEFAULT 1,
         prayer       BOOLEAN NOT NULL DEFAULT 1,
         FOREIGN KEY (caregiver_id) REFERENCES Caregivers(id) ON DELETE CASCADE
@@ -458,6 +459,13 @@ def add_elder_reminder():
         if elder_id is None:
             flash("Add an elder before adding a reminder.")
             return redirect(url_for("caregiver"))
+
+        responsibility_row = get_db().execute(
+            "SELECT custom FROM Responsibilities WHERE caregiver_id = ?",
+            [current_user.user_id]
+        ).fetchone()
+        if not responsibility_row or not responsibility_row[0]:
+            abort(403)
     else:
         abort(403)
 
@@ -689,7 +697,7 @@ def caregiver():
         ).fetchone()
         elder = Elder(elderRow[0], elderRow[1])
         secondary_caregivers_rows = db.execute(
-            """SELECT c.id, c.full_name, c.elder_id, c.is_primary, r.diet, r.medication, r.prayer
+            """SELECT c.id, c.full_name, c.elder_id, c.is_primary, r.custom, r.medication, r.prayer
             FROM Caregivers c
             LEFT JOIN Responsibilities r ON r.caregiver_id = c.id
             WHERE c.elder_id = ? AND c.id != ?""",
@@ -826,7 +834,7 @@ def add_secondary_caregiver():
         return redirect(url_for("add_secondary_caregiver"))
 
     # checkboxes: present in form data only when checked
-    diet = 1 if request.form.get("diet") else 0
+    custom = 1 if request.form.get("custom") else 0
     medication = 1 if request.form.get("medication") else 0
     prayer = 1 if request.form.get("prayer") else 0
 
@@ -844,8 +852,8 @@ def add_secondary_caregiver():
         )
 
         db.execute(
-            "INSERT INTO Responsibilities (caregiver_id, diet, medication, prayer) VALUES (?, ?, ?, ?)",
-            [new_caregiver_id, diet, medication, prayer]
+            "INSERT INTO Responsibilities (caregiver_id, custom, medication, prayer) VALUES (?, ?, ?, ?)",
+            [new_caregiver_id, custom, medication, prayer]
         )
         db.commit()
 
@@ -857,16 +865,26 @@ def add_secondary_caregiver():
     flash(f"{full_name} has been added as a secondary caregiver.")
     return redirect(url_for("caregiver"))
 
+
 @app.route("/add_meds", methods=["GET", "POST"])
 @login_required
 def add_meds():
     if current_user.role != "caregiver":
         abort(403)
 
+    responsibility_row = get_db().execute(
+        "SELECT medication FROM Responsibilities WHERE caregiver_id = ?",
+        [current_user.user_id]
+    ).fetchone()
+    if not responsibility_row or not responsibility_row[0]:
+        flash("You don't have medication responsibility for this elder.")
+        return redirect(url_for("caregiver"))
+
     elder_id = get_linked_elder_id()
     if elder_id is None:
         flash("Add an elder before adding medications.")
         return redirect(url_for("caregiver"))
+
 
     db = get_db()
 
@@ -1021,15 +1039,46 @@ def remove_medication(medication_id):
 def log_tasks():
     if current_user.role != "caregiver":
         abort(403)
+
     elder_id = get_linked_elder_id()
     if elder_id is None:
         flash("Add an elder before logging tasks.")
         return redirect(url_for("caregiver"))
 
-    prayer, medications, custom_reminders, now = build_reminder_context(elder_id)
-    return render_template("log_tasks.html", prayer=prayer, medications=medications,
-                                                 custom_reminders=custom_reminders, now=now)
+    responsibility_row = get_db().execute(
+        "SELECT custom, medication, prayer FROM Responsibilities WHERE caregiver_id = ?",
+        [current_user.user_id]
+    ).fetchone()
 
+    if not responsibility_row:
+        flash("You don't have any responsibilities set for this elder.")
+        return redirect(url_for("caregiver"))
+
+    can_custom, can_medication, can_prayer = responsibility_row
+
+    if not (can_custom or can_medication or can_prayer):
+        flash("You don't have permission to view any tasks for this elder.")
+        return redirect(url_for("caregiver"))
+
+    prayer, medications, custom_reminders, now = build_reminder_context(elder_id)
+
+    if not can_prayer:
+        prayer = 'no'
+    if not can_medication:
+        medications = 'no'
+    if not can_custom:
+        custom_reminders = 'no'
+
+    return render_template(
+        "log_tasks.html",
+        prayer=prayer,
+        medications=medications,
+        custom_reminders=custom_reminders,
+        now=now,
+        can_prayer=can_prayer,
+        can_medication=can_medication,
+        can_custom=can_custom
+    )
 
 @app.route("/caregiver/medications/<int:medication_id>/done", methods=["POST"])
 @login_required
@@ -1092,6 +1141,79 @@ def caregiver_reminder_done(reminder_id):
                          [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
     db.commit()
     return redirect(url_for("log_tasks"))
+
+@app.route("/")
+def home():
+    return render_template("home.html")
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "GET":
+        return render_template("signup.html")
+
+    full_name = request.form.get("fullname", "").strip()
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
+
+    if not full_name or not username or not password:
+        flash("Full name, username, and password are required.")
+        return redirect(url_for("signup"))
+
+    db = get_db()
+    try:
+        cur = db.execute(
+            "INSERT INTO Users (username, password, role) VALUES (?, ?, 'caregiver')",
+            [username, password]
+        )
+        new_caregiver_id = cur.lastrowid
+
+        db.execute(
+            "INSERT INTO Caregivers (id, full_name, elder_id, is_primary) VALUES (?, ?, NULL, 0)",
+            [new_caregiver_id, full_name]
+        )
+
+        db.execute(
+            "INSERT INTO Responsibilities (caregiver_id) VALUES (?)",
+            [new_caregiver_id]
+        )
+        db.commit()
+
+    except sqlite3.IntegrityError:
+        db.rollback()
+        flash("That username is already taken.")
+        return redirect(url_for("signup"))
+
+    flash("Account created! Please log in.")
+    return redirect(url_for("login_form"))
+
+@app.context_processor
+def inject_settings():
+    return {
+        "ELEVENLABS_AGENT_ID": app.config["ELEVENLABS_AGENT_ID"]
+    }
+
+@app.context_processor
+def inject_current_elder():
+    """Makes the logged-in caregiver's linked elder (or the elder themself)
+    available as `current_elder` in every template, without each route
+    needing to fetch and pass it manually."""
+    if not current_user.is_authenticated:
+        return {"current_elder": None}
+
+    if current_user.role == "caregiver":
+        elder_id = get_linked_elder_id()
+    elif current_user.role == "elder":
+        elder_id = current_user.user_id
+    else:
+        elder_id = None
+
+    current_elder = None
+    if elder_id is not None:
+        row = get_db().execute("SELECT id, full_name FROM Elders WHERE id = ?", [elder_id]).fetchone()
+        if row:
+            current_elder = Elder(row[0], row[1])
+
+    return {"current_elder": current_elder}
 
 # Cleans up a database connection.
 @app.teardown_appcontext
