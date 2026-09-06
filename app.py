@@ -246,10 +246,24 @@ def caregiver():
         reminders = db.execute(
             "SELECT * FROM Reminders WHERE elder_id = ? AND active = 1", [elder_id]
         ).fetchall()
+        
+    caregiver_row = db.execute(
+        "SELECT is_primary FROM Caregivers WHERE id = ?", [current_user.user_id]
+    ).fetchone()
+    is_primary = bool(caregiver_row[0]) if caregiver_row else False
+
+    primary_caregiver = None
+    if elder_id is not None and not is_primary:
+        primary_row = db.execute(
+            "SELECT id, full_name, elder_id, is_primary FROM Caregivers WHERE elder_id = ? AND is_primary = 1",
+            [elder_id]
+        ).fetchone()
+        if primary_row:
+            primary_caregiver = Caregiver(primary_row[0], primary_row[1], primary_row[2], primary_row[3])
 
     notifications = db.execute(
         "SELECT * FROM Notifications WHERE to_user = ? ORDER BY created_at DESC LIMIT 20",
-        [current_user.id]
+        [current_user.user_id]   # <-- fixing the still-outstanding id/user_id bug while I'm here
     ).fetchall()
 
     return render_template(
@@ -257,7 +271,9 @@ def caregiver():
         elder=elder,
         secondary_caregivers=secondary_caregivers,
         notifications=notifications,
-        reminders=reminders
+        reminders=reminders,
+        is_primary=is_primary,
+        primary_caregiver=primary_caregiver
     )
 
 def get_linked_elder_id():
@@ -322,6 +338,12 @@ def add_elder():
 def add_secondary_caregiver():
     if current_user.role != "caregiver":
         abort(403)
+
+    caregiver_row = get_db().execute(
+        "SELECT is_primary FROM Caregivers WHERE id = ?", [current_user.user_id]
+    ).fetchone()
+    if not caregiver_row or not caregiver_row[0]:
+        abort(403)   # only the primary caregiver can add secondary caregivers
 
     elder_id = get_linked_elder_id()
     if elder_id is None:

@@ -78,23 +78,35 @@
     {% endif %}
     <a href="{{ url_for('add_elder') }}" class="add-btn" title="Add elder">+</a>
   </div>
-  
+
   <div class="card secondary-card">
-    <h3>secondary caregivers:</h3>
-     {% for cg in secondary_caregivers %}
-      <div class="caregiver-row">
-        <strong>{{ cg.full_name }}</strong>
-        <img class ="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{cg.full_name }}">
-        <ul class="role-list">
-          <li>Diet {{ '✔' if cg.diet else '✘' }}</li>
-          <li>Medication {{ '✔' if cg.medication else '✘' }}</li>
-          <li>Prayer {{ '✔' if cg.prayer else '✘' }}</li>
-        </ul>
-      </div>
+    {% if is_primary %}
+      <h3>secondary caregivers:</h3>
+      {% for cg in secondary_caregivers %}
+        <div class="caregiver-row">
+          <strong>{{ cg.full_name }}</strong>
+          <img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ cg.full_name }}">
+          <ul class="role-list">
+            <li>Diet {{ '✔' if cg.diet else '✘' }}</li>
+            <li>Medication {{ '✔' if cg.medication else '✘' }}</li>
+            <li>Prayer {{ '✔' if cg.prayer else '✘' }}</li>
+          </ul>
+        </div>
+      {% else %}
+        <p>none yet</p>
+      {% endfor %}
+      <a href="{{ url_for('add_secondary_caregiver') }}" class="add-btn" title="Add secondary caregiver">+</a>
     {% else %}
-      <p>none yet</p>
-    {% endfor %}
-    <a href="{{ url_for('add_secondary_caregiver') }}" class="add-btn" title="Add secondary caregiver">+</a>
+      <h3>primary caregiver:</h3>
+      {% if primary_caregiver %}
+        <div class="caregiver-row">
+          <strong>{{ primary_caregiver.full_name }}</strong>
+          <img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ primary_caregiver.full_name }}">
+        </div>
+      {% else %}
+        <p>none</p>
+      {% endif %}
+    {% endif %}
   </div>
 
   <div class="card notifs-card">
