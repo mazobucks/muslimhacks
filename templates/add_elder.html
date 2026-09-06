@@ -1,0 +1,35 @@
+{% extends 'caregiver_base.html' %}
+{% block title %}Add Elder{% endblock %}
+
+{% block content %}
+<h2>Add elder</h2>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<form method="post" action="{{ url_for('add_elder') }}" enctype="multipart/form-data">
+  <label for="full_name">Full name</label>
+  <input type="text" id="full_name" name="full_name" required>
+
+  <label for="username">Username (for the elder's login)</label>
+  <input type="text" id="username" name="username" required>
+
+  <label for="password">Password</label>
+  <input type="password" id="password" name="password" required>
+
+  <label for="language">Language</label>
+  <input type="text" id="language" name="language" value="English" required>
+
+  <div class="modal-actions">
+    <a href="{{ url_for('caregiver') }}">Cancel</a>
+    <button type="submit">Add elder</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,4 +1,4 @@
-from flask import Flask, g, render_template, request, flash, redirect, url_for, flash, g
+from flask import Flask, g, render_template, request, flash, redirect, url_for, flash, g, abort, jsonify
 import os
 import sqlite3
 import secrets
@@ -9,12 +9,18 @@ import sqlite3
 from flask_login import current_user, login_required, login_user, UserMixin, LoginManager, logout_user
 import werkzeug
 
+
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16) # This is necessary for flash!
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(app)
+
+class Elder:
+    def __init__(self, id, full_name):
+        self.id = id
+        self.full_name = full_name
 
 class User(UserMixin):
     def __init__(self, id, name, password, role):
@@ -56,11 +62,19 @@ if not database_exists:
     db.execute("""CREATE TABLE IF NOT EXISTS Caregivers (
         id         INTEGER PRIMARY KEY,
         full_name  VARCHAR(255),
-        elder_id   INTEGER NOT NULL,
-        is_primary BOOLEAN NOT NULL DEFAULT 0,
+        elder_id   INTEGER,
+        is_primary BOOLEAN DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (id) REFERENCES Users(id) ON DELETE CASCADE,
         FOREIGN KEY (elder_id) REFERENCES Elders(id) ON DELETE CASCADE
+    )""")
+
+    db.execute("""CREATE TABLE IF NOT EXISTS Responsibilities (
+        caregiver_id INTEGER PRIMARY KEY,
+        diet         BOOLEAN NOT NULL DEFAULT 1,
+        medication   BOOLEAN NOT NULL DEFAULT 1,
+        prayer       BOOLEAN NOT NULL DEFAULT 1,
+        FOREIGN KEY (caregiver_id) REFERENCES Caregivers(id) ON DELETE CASCADE
     )""")
 
     db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_one_primary_per_elder
@@ -118,12 +132,6 @@ if not database_exists:
     )""")
 
     # --- Elder ---
-    db.execute("INSERT INTO Users (username, password, role) VALUES (?, ?, ?)",
-            ["fatima", "5678", "elder"])
-    elder_user_id = db.execute("SELECT id FROM Users WHERE username = ?", ["fatima"]).fetchone()[0]
-
-    db.execute("INSERT INTO Elders (id, full_name) VALUES (?, ?)",
-            [elder_user_id, "Fatima Ahmed"])
 
     # --- Caregiver (primary, tied to the elder above) ---
     db.execute("INSERT INTO Users (username, password, role) VALUES (?, ?, ?)",
@@ -131,7 +139,10 @@ if not database_exists:
     caregiver_user_id = db.execute("SELECT id FROM Users WHERE username = ?", ["yusuf"]).fetchone()[0]
 
     db.execute("INSERT INTO Caregivers (id, full_name, elder_id, is_primary) VALUES (?, ?, ?, ?)",
-            [caregiver_user_id, "Yusuf Ahmed", elder_user_id, 1])
+        [caregiver_user_id, "Yusuf Ahmed", None, 0])   # elder_id = NULL, no elder yet
+
+    db.execute("INSERT INTO Responsibilities (caregiver_id) VALUES (?)",
+        [caregiver_user_id])
 
     db.commit()
 
@@ -189,7 +200,99 @@ def home():
 @app.route("/caregiver")
 @login_required
 def caregiver():
-  return render_template("caregiver.html")
+    if current_user.role != "caregiver":
+        abort(403)
+
+    db = get_db()
+    elder_id = get_linked_elder_id()
+
+    elder = None
+    secondary_caregivers = []
+    reminders = []
+    if elder_id is not None:
+        elderRow = db.execute(
+            "SELECT * FROM Elders WHERE id = ?", [elder_id]
+        ).fetchone()
+        elder = Elder(elderRow[0], elderRow[1])
+        secondary_caregivers = db.execute(
+            """SELECT c.full_name, r.diet, r.medication, r.prayer
+               FROM Caregivers c
+               LEFT JOIN Responsibilities r ON r.caregiver_id = c.id
+               WHERE c.elder_id = ? AND c.id != ?""",
+            [elder_id, current_user.user_id]
+        ).fetchall()
+        reminders = db.execute(
+            "SELECT * FROM Reminders WHERE elder_id = ? AND active = 1", [elder_id]
+        ).fetchall()
+
+    notifications = db.execute(
+        "SELECT * FROM Notifications WHERE to_user = ? ORDER BY created_at DESC LIMIT 20",
+        [current_user.id]
+    ).fetchall()
+
+    return render_template(
+        "caregiver.html",
+        elder=elder,
+        secondary_caregivers=secondary_caregivers,
+        notifications=notifications,
+        reminders=reminders
+    )
+
+def get_linked_elder_id():
+    """Returns the elder_id already linked to this caregiver, or None."""
+    row = get_db().execute(
+        "SELECT elder_id FROM Caregivers WHERE id = ?", [current_user.user_id]
+    ).fetchone()
+    return row[0] if row else None 
+
+@app.route("/add_elder", methods=["GET", "POST"])
+@login_required
+def add_elder():
+    if current_user.role != "caregiver":
+        abort(403)
+
+    if get_linked_elder_id() is not None:
+        flash("You already have an elder linked to your account.")
+        return redirect(url_for("caregiver"))
+
+    if request.method == "GET":
+        return render_template("add_elder.html")
+
+    full_name = request.form.get("full_name", "").strip()
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
+    language = request.form.get("language", "").strip()
+
+    if not full_name or not username or not password or not language:
+        flash("Name, username, password, and language are required.")
+        return redirect(url_for("add_elder"))
+
+    db = get_db()
+    try:
+        cur = db.execute(
+            "INSERT INTO Users (username, password, role) VALUES (?, ?, 'elder')",
+            [username, password]
+        )
+        elder_user_id = cur.lastrowid
+
+        db.execute(
+            "INSERT INTO Elders (id, full_name, language) VALUES (?, ?, ?)",
+            [elder_user_id, full_name, language]
+        )
+
+        db.execute(
+            "UPDATE Caregivers SET elder_id = ?, is_primary = 1 WHERE id = ?",
+            [elder_user_id, current_user.user_id]
+        )
+        db.commit()
+
+    except sqlite3.IntegrityError:
+        db.rollback()
+        flash("That username is already taken.")
+        return redirect(url_for("add_elder"))
+
+    flash(f"{full_name} has been added.")
+    return redirect(url_for("caregiver"))
 
 
 # Cleans up a database connection.
