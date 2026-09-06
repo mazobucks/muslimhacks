@@ -1,0 +1,140 @@
+.reminder-page {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.reminder-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.reminder-section {
+    background: rgb(24, 24, 36);
+    border: 1px solid rgb(70, 70, 85);
+    border-radius: 14px;
+    padding: 1.25rem;
+    min-height: 360px;
+}
+
+.reminder-section h2 {
+    margin-top: 0;
+    color: rgb(195, 145, 245);
+}
+
+.section-intro {
+    color: rgb(190, 190, 205);
+}
+
+.reminder-item {
+    background: rgb(31, 31, 43);
+    border-radius: 10px;
+    padding: .9rem;
+    margin: .75rem 0;
+}
+
+.reminder-item strong {
+    display: block;
+    font-size: 1.15rem;
+}
+
+.reminder-meta {
+    color: rgb(220, 220, 228);
+    margin-top: .35rem;
+}
+
+.status-symbol {
+    float: right;
+    font-size: 1.35rem;
+}
+
+.status-done {
+    color: rgb(195, 145, 245);
+}
+
+.status-now {
+    border-left: 4px solid rgb(155, 80, 226);
+}
+
+.status-missed {
+    border-left: 4px solid rgb(220, 220, 228);
+    color: white;
+}
+
+.status-missed .reminder-meta {
+    color: rgb(220, 220, 228);
+}
+
+.take-button,
+.add-reminder {
+    border: 0;
+    border-radius: 8px;
+    padding: .65rem .85rem;
+    cursor: pointer;
+    font: inherit;
+}
+
+.take-button {
+    background: rgb(155, 80, 226);
+    color: white;
+    margin-top: .65rem;
+    display: inline-block;
+}
+
+.take-button:hover,
+.reminder-form button:hover {
+    background: rgb(175, 105, 238);
+}
+
+.add-reminder {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 2px dashed rgb(105, 105, 125);
+    color: rgb(195, 145, 245);
+    text-align: left;
+}
+
+.add-reminder:hover {
+    background: rgb(31, 31, 43);
+}
+
+.reminder-form {
+    display: grid;
+    gap: .65rem;
+    margin-top: 1rem;
+}
+
+.reminder-form input,
+.reminder-form select,
+.reminder-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: .65rem;
+    border: 1px solid rgb(105, 105, 125);
+    border-radius: 6px;
+    background: rgb(12, 12, 24);
+    color: white;
+    font: inherit;
+}
+
+.reminder-form button {
+    background: rgb(155, 80, 226);
+    color: white;
+    border: 0;
+    border-radius: 6px;
+    padding: .7rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+@media (max-width: 850px) {
+    .reminder-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .reminder-section {
+        min-height: 0;
+    }
+}

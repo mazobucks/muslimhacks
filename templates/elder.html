@@ -1,0 +1,69 @@
+{% extends 'elder_base.html' %}
+{% block title %}Reminders{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/elder.css') }}">
+{% endblock %}
+{% block content %}
+<main class="reminder-page">
+	<h2>Today's reminders</h2>
+	<div class="reminder-grid">
+		<section class="reminder-section" aria-labelledby="prayer-title">
+			<h2 id="prayer-title">Prayer</h2>
+			<p class="section-intro">The prayer for this time and the next adhan.</p>
+			<article class="reminder-item {{ 'status-done' if prayer.current.done else '' }}">
+				<span class="status-symbol" aria-label="{{ 'Prayed' if prayer.current.done else 'Not prayed' }}">{{ '✓' if prayer.current.done else '○' }}</span>
+				<strong>{{ prayer.current.name }}</strong>
+				<div class="reminder-meta">Adhan: {{ prayer.current.time }}</div>
+				<div class="reminder-meta">{{ 'Prayed already' if prayer.current.done else 'Prayer still needs to be completed' }}</div>
+				{% if not prayer.current.done %}<a class="take-button" href="{{ url_for('prayer_check') }}">Start prayer</a>{% endif %}
+			</article>
+			<article class="reminder-item">
+				<strong>Next: {{ prayer.next.name }}</strong>
+				<div class="reminder-meta">Adhan: {{ prayer.next.time }}</div>
+			</article>
+		</section>
+
+		<section class="reminder-section" aria-labelledby="medication-title">
+			<h2 id="medication-title">Medications</h2>
+			<p class="section-intro">Each medication has a one-hour window.</p>
+			{% for medication in medications %}
+				<article class="reminder-item {{ 'status-' + medication.status }}">
+					<span class="status-symbol" aria-label="{{ medication.status }}">{{ '✓' if medication.status == 'done' else '!' if medication.status == 'missed' else '○' }}</span>
+					<strong>{{ medication.name }}</strong>
+					{% if medication.dosage %}<div class="reminder-meta">{{ medication.dosage }}</div>{% endif %}
+					<div class="reminder-meta">{{ medication.schedule_time }} - {{ medication.ends_at }}</div>
+					{% if medication.status == 'now' %}<div class="reminder-meta"><strong>Take it now</strong> until {{ medication.ends_at }}</div>{% endif %}
+					{% if medication.status == 'missed' %}<div class="reminder-meta">Missed medication</div>{% endif %}
+					{% if medication.status != 'done' and medication.status != 'upcoming' and medication.status != 'unscheduled' %}
+						<form method="post" action="{{ url_for('medication_done', medication_id=medication.id) }}"><button class="take-button" type="submit">Mark as taken</button></form>
+					{% endif %}
+				</article>
+			{% else %}<p>No medications scheduled.</p>{% endfor %}
+		</section>
+
+		<section class="reminder-section" aria-labelledby="custom-title">
+			<h2 id="custom-title">Custom reminders</h2>
+			<p class="section-intro">Your personal reminders.</p>
+			{% for reminder in custom_reminders %}
+				<article class="reminder-item">
+					<strong>{{ reminder[1] }}</strong>
+					{% if reminder[2] %}<div class="reminder-meta">{{ reminder[2] }}</div>{% endif %}
+					<div class="reminder-meta">{{ reminder[3].replace('_', ' ')|title }}{% if reminder[4] %} at {{ reminder[4] }}{% endif %}</div>
+				</article>
+			{% else %}<p>No custom reminders yet.</p>{% endfor %}
+			<button class="add-reminder" type="button" onclick="document.getElementById('reminder-form').hidden = false; this.hidden = true;">+ Add a reminder</button>
+			<form id="reminder-form" class="reminder-form" method="post" action="{{ url_for('add_elder_reminder') }}" hidden>
+				<label for="reminder-title">What should you remember?</label>
+				<input id="reminder-title" name="title" required>
+				<label for="reminder-description">Details</label>
+				<textarea id="reminder-description" name="description" rows="2"></textarea>
+				<label for="reminder-time">Time</label>
+				<input id="reminder-time" name="scheduled_time" type="time">
+				<label for="reminder-frequency">Repeats</label>
+				<select id="reminder-frequency" name="frequency"><option value="one_time">Once</option><option value="daily">Daily</option><option value="weekly">Weekly</option></select>
+				<button type="submit">Save reminder</button>
+			</form>
+		</section>
+	</div>
+</main>
+{% endblock %}
