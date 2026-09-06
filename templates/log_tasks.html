@@ -1,8 +1,9 @@
-{% extends 'elder_base.html' %}
-{% block title %}Reminders{% endblock %}
+{% extends 'caregiver_base.html' %}
+{% block title %}Log Tasks{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/elder.css') }}">
 {% endblock %}
 {% block content %}
+{% set is_caregiver = true %}
 {% include '_reminders.html' %}
 {% endblock %}
