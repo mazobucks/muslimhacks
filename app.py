@@ -250,6 +250,10 @@ if "scheduled_date" not in [row[1] for row in db.execute("PRAGMA table_info(Remi
     db.execute("ALTER TABLE Reminders ADD COLUMN scheduled_date DATE")
     db.commit()
 
+if "message" not in [row[1] for row in db.execute("PRAGMA table_info(TaskLogs)").fetchall()]:
+    db.execute("ALTER TABLE TaskLogs ADD COLUMN message TEXT")
+    db.commit()
+
 # Keep existing databases compatible with the notification read/unread state.
 if "is_read" not in [row[1] for row in db.execute("PRAGMA table_info(Notifications)").fetchall()]:
     db.execute("ALTER TABLE Notifications ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0")
@@ -355,6 +359,34 @@ def elder():
     prayer, medications, custom_reminders, now = build_reminder_context(current_user.user_id)
     return render_template("elder.html", prayer=prayer, medications=medications,
                                                  custom_reminders=custom_reminders, now=now)  
+
+
+@app.route("/elder/sos", methods=["POST"])
+@login_required
+def elder_sos():
+    if current_user.role != "elder":
+        abort(403)
+
+    db = get_db()
+    message = "I need help"
+    reminder_id = get_or_create_task_reminder(
+        current_user.user_id, message, "custom", current_user.user_id
+    )
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    db.execute(
+        """INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at, message)
+           VALUES (?, ?, 'done', ?, ?)""",
+        [reminder_id, current_user.user_id, timestamp, message]
+    )
+
+    caregiver_id = get_primary_caregiver(current_user.user_id)
+    if caregiver_id:
+        db.execute(
+            "INSERT INTO Notifications (from_user, to_user, message) VALUES (?, ?, ?)",
+            [current_user.user_id, caregiver_id, message]
+        )
+    db.commit()
+    return redirect(url_for("elder"))
 
 def parse_schedule_time(value):
     if not value:

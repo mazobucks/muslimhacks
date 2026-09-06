@@ -5,22 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <style>
-        
-        
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1 style="text-align: center;">Welcome</h1>
-        <p style="text-align: center;">Login as an elder or caregiver, or sign up as a primary caregiver.</p>
-
-        <div class="action-box">
-            <div class="actions">
-                <a href="{{ url_for('login') }}" class="btn btn-primary">Login in</a>
-                <a href="{{ url_for('signup') }}" class="btn btn-secondary">Sign up</a>
+    <main class="welcome-page">
+        <section class="welcome-panel" aria-labelledby="welcome-title">
+            <div class="brand-mark">
+                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Connect and Care logo">
             </div>
-        </div>
-    </div>
+            <p class="welcome-label">Connect and Care</p>
+            <h1 id="welcome-title">Welcome</h1>
+            <p class="welcome-message">A simple, caring place to manage daily support, medication, and prayer reminders.</p>
+
+            <div class="actions" aria-label="Account actions">
+                <a href="{{ url_for('login') }}" class="welcome-button welcome-button-primary">Log in</a>
+                <a href="{{ url_for('signup') }}" class="welcome-button welcome-button-secondary">Sign up as a caregiver</a>
+            </div>
+
+            <p class="welcome-help">Choose an option to get started.</p>
+        </section>
+    </main>
 </body>
 </html>
