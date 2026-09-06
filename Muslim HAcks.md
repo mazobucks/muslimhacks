@@ -79,4 +79,7 @@ tasks:
 - encryption passwords
 - responsiblities access
 
+- voice
+- notifications of complettion to respective caregivers
+
 

@@ -881,6 +881,51 @@ def caregiver_reminder_done(reminder_id):
     db.commit()
     return redirect(url_for("log_tasks"))
 
+@app.route("/")
+def home():
+    return render_template("home.html")
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "GET":
+        return render_template("signup.html")
+
+    full_name = request.form.get("fullname", "").strip()
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
+
+    if not full_name or not username or not password:
+        flash("Full name, username, and password are required.")
+        return redirect(url_for("signup"))
+
+    db = get_db()
+    try:
+        cur = db.execute(
+            "INSERT INTO Users (username, password, role) VALUES (?, ?, 'caregiver')",
+            [username, password]
+        )
+        new_caregiver_id = cur.lastrowid
+
+        db.execute(
+            "INSERT INTO Caregivers (id, full_name, elder_id, is_primary) VALUES (?, ?, NULL, 0)",
+            [new_caregiver_id, full_name]
+        )
+
+        db.execute(
+            "INSERT INTO Responsibilities (caregiver_id) VALUES (?)",
+            [new_caregiver_id]
+        )
+        db.commit()
+
+    except sqlite3.IntegrityError:
+        db.rollback()
+        flash("That username is already taken.")
+        return redirect(url_for("signup"))
+
+    flash("Account created! Please log in.")
+    return redirect(url_for("login_form"))
+
+
 # Cleans up a database connection.
 @app.teardown_appcontext
 def cleanup(exception):
