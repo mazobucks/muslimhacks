@@ -22,6 +22,16 @@ class Elder:
         self.id = id
         self.full_name = full_name
 
+class Caregiver:
+    def __init__(self, id, full_name, elder_id, is_primary, diet=0, medication=0, prayer=0):
+        self.id = id
+        self.full_name = full_name
+        self.elder_id = elder_id
+        self.is_primary = is_primary
+        self.diet = diet
+        self.medication = medication
+        self.prayer = prayer
+
 class User(UserMixin):
     def __init__(self, id, name, password, role):
         self.id = name
@@ -214,13 +224,25 @@ def caregiver():
             "SELECT * FROM Elders WHERE id = ?", [elder_id]
         ).fetchone()
         elder = Elder(elderRow[0], elderRow[1])
-        secondary_caregivers = db.execute(
-            """SELECT c.full_name, r.diet, r.medication, r.prayer
-               FROM Caregivers c
-               LEFT JOIN Responsibilities r ON r.caregiver_id = c.id
-               WHERE c.elder_id = ? AND c.id != ?""",
+        secondary_caregivers_rows = db.execute(
+            """SELECT c.id, c.full_name, c.elder_id, c.is_primary, r.diet, r.medication, r.prayer
+            FROM Caregivers c
+            LEFT JOIN Responsibilities r ON r.caregiver_id = c.id
+            WHERE c.elder_id = ? AND c.id != ?""",
             [elder_id, current_user.user_id]
         ).fetchall()
+        secondary_caregivers = [
+            Caregiver(
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+                row[4] or 0,
+                row[5] or 0,
+                row[6] or 0,
+            )
+            for row in secondary_caregivers_rows
+        ]
         reminders = db.execute(
             "SELECT * FROM Reminders WHERE elder_id = ? AND active = 1", [elder_id]
         ).fetchall()
@@ -294,6 +316,60 @@ def add_elder():
     flash(f"{full_name} has been added.")
     return redirect(url_for("caregiver"))
 
+
+@app.route("/add_secondary_caregiver", methods=["GET", "POST"])
+@login_required
+def add_secondary_caregiver():
+    if current_user.role != "caregiver":
+        abort(403)
+
+    elder_id = get_linked_elder_id()
+    if elder_id is None:
+        flash("Add an elder before adding a secondary caregiver.")
+        return redirect(url_for("caregiver"))
+
+    if request.method == "GET":
+        return render_template("add_secondary.html")
+
+    full_name = request.form.get("full_name", "").strip()
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
+
+    if not full_name or not username or not password:
+        flash("Name, username, and password are required.")
+        return redirect(url_for("add_secondary_caregiver"))
+
+    # checkboxes: present in form data only when checked
+    diet = 1 if request.form.get("diet") else 0
+    medication = 1 if request.form.get("medication") else 0
+    prayer = 1 if request.form.get("prayer") else 0
+
+    db = get_db()
+    try:
+        cur = db.execute(
+            "INSERT INTO Users (username, password, role) VALUES (?, ?, 'caregiver')",
+            [username, password]
+        )
+        new_caregiver_id = cur.lastrowid
+
+        db.execute(
+            "INSERT INTO Caregivers (id, full_name, elder_id, is_primary) VALUES (?, ?, ?, 0)",
+            [new_caregiver_id, full_name, elder_id]
+        )
+
+        db.execute(
+            "INSERT INTO Responsibilities (caregiver_id, diet, medication, prayer) VALUES (?, ?, ?, ?)",
+            [new_caregiver_id, diet, medication, prayer]
+        )
+        db.commit()
+
+    except sqlite3.IntegrityError:
+        db.rollback()
+        flash("That username is already taken.")
+        return redirect(url_for("add_secondary_caregiver"))
+
+    flash(f"{full_name} has been added as a secondary caregiver.")
+    return redirect(url_for("caregiver"))
 
 # Cleans up a database connection.
 @app.teardown_appcontext
