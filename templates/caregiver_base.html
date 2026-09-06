@@ -35,9 +35,6 @@
             <span>Asalamualaikum {{ current_user.name }}!</span>
             <button type="button" class="welcome-notification-close" aria-label="Close welcome message">&times;</button>
         </div>
-        <div class="imgName">
-            <img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ current_user.full_name }}">
-        </div>
     {% endif %}
 
     {% with messages = get_flashed_messages() %}
