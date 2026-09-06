@@ -8,6 +8,7 @@ from datetime import datetime
 import sqlite3
 from flask_login import current_user, login_required, login_user, UserMixin, LoginManager, logout_user
 import werkzeug
+import requests
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16) # This is necessary for flash!
@@ -186,6 +187,123 @@ def logout():
 def home():
   return render_template("home.html")
 
+FARD_RAKAHS = {
+    "Fajr": 2,
+    "Dhuhr": 4,
+    "Asr": 4,
+    "Maghrib": 3,
+    "Isha": 4,
+}
+
+# Fallback coordinates if the browser doesn't share location (Mecca, as a placeholder)
+DEFAULT_LAT = 21.3891
+DEFAULT_LNG = 39.8579
+
+
+@app.route("/prayer-check")
+@login_required
+def prayer_check():
+    return render_template("prayer-check.html")
+
+
+@app.route("/api/current-prayer")
+@login_required
+def current_prayer():
+    lat = request.args.get("lat", DEFAULT_LAT)
+    lng = request.args.get("lng", DEFAULT_LNG)
+
+    try:
+        resp = requests.get(
+            "https://api.aladhan.com/v1/timings",
+            params={"latitude": lat, "longitude": lng, "method": 2},
+            timeout=5,
+        )
+        timings = resp.json()["data"]["timings"]
+    except Exception:
+        return {"error": "Could not reach prayer time service"}, 502
+
+    now = datetime.now().strftime("%H:%M")
+    current_name = None
+    current_time = None
+
+    # Find the most recent fard prayer time that has already passed today
+    for name in FARD_RAKAHS:
+        t = timings.get(name)
+        if t and t <= now:
+            current_name = name
+            current_time = t
+
+    if not current_name:
+        # before Fajr - default to yesterday's Isha
+        current_name = "Isha"
+        current_time = timings.get("Isha")
+
+    return {
+        "name": current_name,
+        "time": current_time,
+        "rakahs": FARD_RAKAHS[current_name],
+    }
+
+
+def get_or_create_prayer_reminder(elder_id, prayer_name):
+    db = get_db()
+    row = db.execute(
+        "SELECT id FROM Reminders WHERE elder_id = ? AND category = 'prayer' AND title = ? LIMIT 1",
+        [elder_id, prayer_name],
+    ).fetchone()
+    if row:
+        return row[0]
+
+    cur = db.execute(
+        """INSERT INTO Reminders (elder_id, created_by, category, title, frequency)
+           VALUES (?, ?, 'prayer', ?, 'daily')""",
+        [elder_id, elder_id, prayer_name],
+    )
+    db.commit()
+    return cur.lastrowid
+
+
+def get_primary_caregiver(elder_id):
+    db = get_db()
+    row = db.execute(
+        "SELECT id FROM Caregivers WHERE elder_id = ? AND is_primary = 1 LIMIT 1",
+        [elder_id],
+    ).fetchone()
+    return row[0] if row else None
+
+
+@app.route("/api/prayer/end", methods=["POST"])
+@login_required
+def end_prayer():
+    data = request.get_json()
+    prayer_name = data.get("prayer_name")
+    rakahs_completed = data.get("rakahs_completed", 0)
+    rakahs_required = data.get("rakahs_required")
+
+    elder_id = current_user.user_id
+    db = get_db()
+
+    reminder_id = get_or_create_prayer_reminder(elder_id, prayer_name)
+
+    status = "done"
+    if rakahs_required and rakahs_completed < rakahs_required:
+        status = "missed"
+
+    db.execute(
+        "INSERT INTO TaskLogs (reminder_id, logged_by, status) VALUES (?, ?, ?)",
+        [reminder_id, elder_id, status],
+    )
+
+    caregiver_id = get_primary_caregiver(elder_id)
+    if caregiver_id:
+        message = f"{current_user.name} completed {prayer_name} ({rakahs_completed} rakah)."
+        db.execute(
+            "INSERT INTO Notifications (from_user, to_user, message) VALUES (?, ?, ?)",
+            [elder_id, caregiver_id, message],
+        )
+
+    db.commit()
+    return {"ok": True}
 @app.route("/caregiver")
 @login_required
 def caregiver():

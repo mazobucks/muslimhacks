@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Prayer Check{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/prayer-check.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="prayer-layout">
+
+  <!-- LEFT: pick a prayer that doesn't come from the adhan schedule -->
+  <aside class="left-panel">
+    <h3>Choose a Prayer</h3>
+    <ul id="prayer-options"></ul>
+  </aside>
+
+  <!-- CENTER: webcam + counter + controls -->
+  <main class="center-panel">
+    <div class="video-wrap">
+      <video id="webcam" autoplay playsinline muted></video>
+      <canvas id="overlay"></canvas>
+    </div>
+
+    <div id="status">Select a prayer to begin</div>
+    <div id="rakah-display" class="rakah-display">Rakah: 0</div>
+
+    <div class="controls">
+      <button id="start-btn" disabled>Start Prayer</button>
+      <button id="end-btn" disabled>End Prayer</button>
+    </div>
+  </main>
+
+  <!-- RIGHT: current fard prayer time + required rakahs -->
+  <aside class="right-panel">
+    <h3>Current Prayer Time</h3>
+    <div id="current-prayer-info">Loading…</div>
+  </aside>
+
+</div>
+
+<script type="module" src="{{ url_for('static', filename='js/prayer-check.js') }}"></script>
+{% endblock %}

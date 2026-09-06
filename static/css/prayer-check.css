@@ -1,0 +1,115 @@
+.prayer-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.left-panel, .right-panel {
+    flex: 0 0 220px;
+    background: rgb(24, 24, 36);
+    border-radius: 8px;
+    padding: 14px;
+}
+
+.center-panel {
+    flex: 1 1 400px;
+    max-width: 640px;
+}
+
+.left-panel h3, .right-panel h3 {
+    margin-top: 0;
+    font-size: 1.1rem;
+}
+
+#prayer-options {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#prayer-options li {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: rgb(31, 31, 43);
+}
+
+#prayer-options li:hover {
+    background: rgb(45, 45, 65);
+}
+
+#prayer-options li.selected {
+    background: rgb(155, 80, 226);
+    color: white;
+}
+
+#current-prayer-info {
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgb(31, 31, 43);
+    cursor: pointer;
+}
+
+#current-prayer-info.selected {
+    background: rgb(155, 80, 226);
+}
+
+.video-wrap {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+}
+
+video, canvas {
+    width: 100%;
+    display: block;
+    border-radius: 8px;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#status {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 1.5rem;
+}
+
+.rakah-display {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-top: 6px;
+    display: block; /* toggled to none/block by JS is not needed now since it's always visible, but keep for clarity */
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.controls button {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    background: rgb(155, 80, 226);
+    color: white;
+}
+
+.controls button:disabled {
+    background: rgb(70, 70, 85);
+}
+
+.BIG{
+    font-size: 10rem;
+}
