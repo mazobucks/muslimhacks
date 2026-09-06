@@ -52,32 +52,56 @@
 		<section class="reminder-section" aria-labelledby="custom-title">
 			<h2 id="custom-title">Custom reminders</h2>
 			{% if custom_reminders == 'no' %}
-				<p>You don't have permission to view custom tasks for this elder.</p>
+				<p>You don't have custom reminder responsibility for this elder.</p>
 			{% else %}
-				<p class="section-intro">Your personal reminders.</p>
-				{% for reminder in custom_reminders %}
-					<article class="reminder-item">
-						<strong>{{ reminder[1] }}</strong>
-						{% if reminder[2] %}<div class="reminder-meta">{{ reminder[2] }}</div>{% endif %}
-						<div class="reminder-meta">{{ reminder[3].replace('_', ' ')|title }}{% if reminder[4] %} at {{ reminder[4] }}{% endif %}</div>
-						{% if is_caregiver %}
-							<form method="post" action="{{ url_for('caregiver_reminder_done', reminder_id=reminder[0]) }}"><button class="take-button" type="submit">Mark as done</button></form>
-						{% endif %}
-					</article>
-				{% else %}<p>No custom reminders yet.</p>{% endfor %}
-
-					<button class="add-reminder" type="button" onclick="document.getElementById('reminder-form').hidden = false; this.hidden = true;">+ Add a reminder</button>
-					<form id="reminder-form" class="reminder-form" method="post" action="{{ url_for('add_elder_reminder') }}" hidden>
-						<label for="reminder-title">What should you remember?</label>
-						<input id="reminder-title" name="title" required>
-						<label for="reminder-description">Details</label>
-						<textarea id="reminder-description" name="description" rows="2"></textarea>
-						<label for="reminder-time">Time</label>
-						<input id="reminder-time" name="scheduled_time" type="time">
-						<label for="reminder-frequency">Repeats</label>
-						<select id="reminder-frequency" name="frequency"><option value="one_time">Once</option><option value="daily">Daily</option><option value="weekly">Weekly</option></select>
-						<button type="submit">Save reminder</button>
-					</form>
+			<p class="section-intro">Your personal reminders.</p>
+			{% for reminder in custom_reminders %}
+				<article class="reminder-item {{ 'status-done' if reminder[6] else '' }}">
+					<div class="reminder-actions">
+						<form class="reminder-check-form" method="post" action="{{ url_for('toggle_reminder', reminder_id=reminder[0]) }}">
+							<label class="reminder-check">
+								<input type="checkbox" name="done" onchange="this.form.submit()"{% if reminder[6] %} checked{% endif %}>
+								<span>{{ 'Completed' if reminder[6] else 'Mark as done' }}</span>
+							</label>
+						</form>
+						<form method="post" action="{{ url_for('delete_reminder', reminder_id=reminder[0]) }}">
+							<button class="trash-button" type="submit" aria-label="Delete {{ reminder[1] }}" title="Delete reminder">&#128465;</button>
+						</form>
+					</div>
+					<strong>{{ reminder[1] }}</strong>
+					{% if reminder[2] %}<div class="reminder-meta">{{ reminder[2] }}</div>{% endif %}
+					<div class="reminder-meta">{{ reminder[3].replace('_', ' ')|title }}{% if reminder[4] %} at {{ reminder[4] }}{% endif %}{% if reminder[5] %} from {{ reminder[5] }}{% endif %}</div>
+				</article>
+			{% else %}<p>No custom reminders yet.</p>{% endfor %}
+			<button class="add-reminder" type="button" onclick="document.getElementById('reminder-form').hidden = false; this.hidden = true;">+ Add a reminder</button>
+			<form id="reminder-form" class="reminder-form" method="post" action="{{ url_for('add_elder_reminder') }}" hidden>
+				<label for="reminder-title">What should you remember?</label>
+				<input id="reminder-title" name="title" required>
+				<label for="reminder-description">Details</label>
+				<textarea id="reminder-description" name="description" rows="2"></textarea>
+				<label for="reminder-time">Time</label>
+				<input id="reminder-time" name="scheduled_time" type="time">
+				<label for="reminder-date">Start date</label>
+				<input id="reminder-date" name="scheduled_date" type="date">
+				<label for="reminder-frequency">Repeats</label>
+				<select id="reminder-frequency" name="frequency">
+					<option value="one_time">Once</option>
+					<option value="daily">Daily</option>
+					<option value="weekly">Weekly</option>
+				</select>
+				<button type="submit">Save reminder</button>
+			</form>
+			<script>
+				const reminderFrequency = document.getElementById('reminder-frequency');
+				const reminderDate = document.getElementById('reminder-date');
+				function updateReminderDateRequirement() {
+					const repeats = reminderFrequency.value !== 'one_time';
+					reminderDate.required = repeats;
+					reminderDate.previousElementSibling.textContent = repeats ? 'Start date (required)' : 'Date';
+				}
+				reminderFrequency.addEventListener('change', updateReminderDateRequirement);
+				updateReminderDateRequirement();
+			</script>
 			{% endif %}
 		</section>
 	</div>

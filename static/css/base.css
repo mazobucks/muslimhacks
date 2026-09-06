@@ -57,6 +57,22 @@ nav a:hover {
     background: var(--surface-raised);
 }
 
+.nav-logo {
+    display: inline-flex;
+    align-items: center;
+    padding: .25rem;
+}
+
+.nav-logo:hover {
+    background: transparent;
+}
+
+.nav-logo img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+}
+
 h1, h2, h3 {
     color: var(--purple-light);
 }
