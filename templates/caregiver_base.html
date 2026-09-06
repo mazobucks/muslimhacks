@@ -25,15 +25,15 @@
         <a class="nav-logo" href="{{ url_for('caregiver') }}" aria-label="Connect and Care home">
             <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Connect and Care logo">
         </a>
-        <a href="{{ url_for('caregiver') }}">home</a>
+        <a href="{{ url_for('caregiver') }}">Home</a>
         <a href="{{ url_for('add_meds') }}">Medication</a>
         <a href="{{ url_for('log_tasks') }}">Tasks</a>
         <a href="{{ url_for('logout') }}">logout</a>
     </nav>
     {% if current_user.is_authenticated %}
-        <div class="imgName"> 
-            <h1>Asalamualaikum {{ current_user.name }}!</h1>
-            <img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ current_user.full_name }}">
+        <div class="welcome-notification" id="welcome-notification" role="status">
+            <span>Asalamualaikum {{ current_user.name }}!</span>
+            <button type="button" class="welcome-notification-close" aria-label="Close welcome message">&times;</button>
         </div>
     {% endif %}
 
@@ -62,6 +62,24 @@
         agent-id="{{ ELEVENLABS_AGENT_ID }}"
         {% if current_elder %}dynamic-variables='{"elder_name": "{{ current_elder.full_name }}"}'{% endif %}
     ></elevenlabs-convai>
+    <script>
+        function setupWelcomeNotification() {
+            const welcomeNotification = document.getElementById('welcome-notification');
+            const closeWelcomeNotification = document.querySelector('.welcome-notification-close');
+            if (!welcomeNotification || !closeWelcomeNotification) return;
+
+            closeWelcomeNotification.addEventListener('click', function () {
+                welcomeNotification.classList.add('is-dismissed');
+                welcomeNotification.setAttribute('aria-hidden', 'true');
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupWelcomeNotification);
+        } else {
+            setupWelcomeNotification();
+        }
+    </script>
 </body>
     
 </html>

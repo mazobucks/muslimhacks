@@ -6,50 +6,52 @@
   body.add-elder-page {
     min-height: 100vh;
     margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #55247c;
+    background: linear-gradient(145deg, rgb(12, 12, 24), rgb(31, 31, 43));
   }
 
   .add-elder-container {
-    width: min(100%, 480px);
-    margin: 0 auto;
+    width: min(100%, 560px);
+    margin: 2rem auto;
     padding: 2rem;
-    background: #1c171d;
+    background: rgba(24, 24, 36, 0.88);
+    border: 1px solid rgb(70, 70, 85);
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
   }
 
   .add-elder-title {
+    margin: 0 0 1.5rem;
     text-align: center;
-    color: #d00fd6;
-    margin-bottom: 2rem;
-    font-size: 1.75rem;
+    color: rgb(195, 145, 245);
+    font-size: clamp(1.9rem, 3vw, 2.6rem);
   }
 
   .add-elder-form {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.2rem;
   }
 
   .form-group {
     display: flex;
     flex-direction: column;
+    gap: 0.5rem;
   }
 
   .add-elder-form label {
-    margin-bottom: 0.5rem;
-    color: #da9fe9;
-    font-weight: 500;
-    font-size: 0.95rem;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
   }
 
   .add-elder-form input {
-    padding: 0.75rem 1rem;
-    border: 1px solid #bdc3c7;
-    border-radius: 6px;
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid rgb(105, 105, 125);
+    border-radius: 8px;
+    background: rgb(12, 12, 24);
+    color: white;
     font-size: 1rem;
     font-family: inherit;
     transition: border-color 150ms ease, box-shadow 150ms ease;
@@ -57,12 +59,13 @@
 
   .add-elder-form input:focus {
     outline: none;
-    border-color: rgb(155, 80, 226);
-    box-shadow: 0 0 0 3px rgba(155, 80, 226, 0.1);
+    border-color: rgb(195, 145, 245);
+    box-shadow: 0 0 0 3px rgba(155, 80, 226, 0.18);
   }
 
   .form-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.75rem;
     justify-content: center;
     margin-top: 1.5rem;
@@ -71,11 +74,11 @@
   .add-elder-form .btn-cancel,
   .add-elder-form .btn-submit {
     display: inline-block;
-    min-width: 120px;
-    padding: 0.75rem 1.5rem;
+    min-width: 140px;
+    padding: 0.8rem 1.4rem;
     border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 500;
+    font-size: 1.05rem;
+    font-weight: 700;
     cursor: pointer;
     text-decoration: none;
     border: none;
@@ -86,40 +89,56 @@
   .add-elder-form .btn-submit {
     background-color: rgb(155, 80, 226);
     color: #ffffff;
-    box-shadow: 0 6px 18px rgba(5, 8, 12, 0.4);
+    box-shadow: 0 6px 18px rgba(5, 8, 12, 0.35);
   }
 
   .add-elder-form .btn-submit:hover {
-    transform: translateY(-4px);
-    background-color: #a050e2;
-    box-shadow: 0 10px 28px rgba(5, 8, 12, 0.6);
+    transform: translateY(-2px);
+    background-color: rgb(175, 105, 238);
+    box-shadow: 0 10px 28px rgba(5, 8, 12, 0.45);
   }
 
   .add-elder-form .btn-cancel {
-    background-color: #ecf0f1;
-    color: #34495e;
-    border: 1px solid #bdc3c7;
+    background: transparent;
+    color: rgb(195, 145, 245);
+    border: 1px solid rgb(105, 105, 125);
   }
 
   .add-elder-form .btn-cancel:hover {
-    transform: translateY(-2px);
-    background-color: #d5dbdf;
-    box-shadow: 0 6px 12px rgba(5, 8, 12, 0.15);
+    transform: translateY(-1px);
+    background: rgb(31, 31, 43);
+    color: white;
   }
 
   .flashes {
     list-style: none;
     padding: 0;
-    margin: 0 0 1.5rem 0;
+    margin: 0 0 1.25rem;
   }
 
   .flashes li {
-    padding: 0.75rem 1rem;
+    padding: 0.85rem 1rem;
     margin-bottom: 0.75rem;
-    background-color: #ffe6e6;
-    color: #c33;
-    border-left: 4px solid #c33;
-    border-radius: 4px;
+    background-color: rgba(154, 42, 63, 0.18);
+    color: rgb(255, 216, 222);
+    border: 1px solid rgba(255, 116, 136, 0.4);
+    border-left: 4px solid rgb(255, 116, 136);
+    border-radius: 8px;
+  }
+
+  @media (max-width: 520px) {
+    .add-elder-container {
+      padding: 1.25rem;
+    }
+
+    .form-actions {
+      flex-direction: column;
+    }
+
+    .add-elder-form .btn-cancel,
+    .add-elder-form .btn-submit {
+      width: 100%;
+    }
   }
 </style>
 

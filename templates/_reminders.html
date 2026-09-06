@@ -2,7 +2,13 @@
 	<h2>Today's reminders</h2>
 	<div class="reminder-grid">
 		<section class="reminder-section" aria-labelledby="prayer-title">
-			<h2 id="prayer-title">Prayer</h2>
+			<h2 id="prayer-title">
+				{% if is_caregiver %}
+					Prayer
+				{% else %}
+					<a class="section-title-link" href="{{ url_for('prayer_check') }}">Prayer</a>
+				{% endif %}
+			</h2>
 			{% if prayer == 'no' %}
 				<p>You don't have prayer responsibility for this elder.</p>
 			{% else %}
@@ -28,7 +34,9 @@
 		</section>
 
 		<section class="reminder-section" aria-labelledby="medication-title">
-			<h2 id="medication-title">Medications</h2>
+			<h2 id="medication-title">
+				<a class="section-title-link" href="{{ url_for('add_meds') if is_caregiver else url_for('medication_scan') }}">Medications</a>
+			</h2>
 			{% if medications == 'no' %}
 				<p>You don't have medication responsibility for this elder.</p>
 			{% else %}

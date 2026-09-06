@@ -21,12 +21,15 @@
             <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Connect and Care logo">
         </a>
         <a href="/elder">Home</a>
-        <a href="{{ url_for('medication_scan') }}">Scan medication</a>
         <a href="{{ url_for('prayer_check') }}">Prayer check</a>
+        <a href="{{ url_for('medication_scan') }}">Scan medication</a>
         <a href="{{ url_for('logout') }}">Logout</a>
     </nav>
     {% if current_user.is_authenticated %}
-        <h1>Asalamualaikum {{ current_user.name }}!</h1>
+        <div class="welcome-notification" id="welcome-notification" role="status">
+            <span>Asalamualaikum {{ current_user.name }}!</span>
+            <button type="button" class="welcome-notification-close" aria-label="Close welcome message">&times;</button>
+        </div>
     {% endif %}
     {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -54,6 +57,24 @@
         agent-id="{{ ELEVENLABS_AGENT_ID }}"
         {% if current_elder %}dynamic-variables='{"elder_name": "{{ current_elder.full_name }}"}'{% endif %}
     ></elevenlabs-convai>
+    <script>
+        function setupWelcomeNotification() {
+            const welcomeNotification = document.getElementById('welcome-notification');
+            const closeWelcomeNotification = document.querySelector('.welcome-notification-close');
+            if (!welcomeNotification || !closeWelcomeNotification) return;
+
+            closeWelcomeNotification.addEventListener('click', function () {
+                welcomeNotification.classList.add('is-dismissed');
+                welcomeNotification.setAttribute('aria-hidden', 'true');
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupWelcomeNotification);
+        } else {
+            setupWelcomeNotification();
+        }
+    </script>
 </body>
 
 </html>
