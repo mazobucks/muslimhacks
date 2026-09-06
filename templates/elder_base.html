@@ -17,6 +17,7 @@
         <a href="/elder">Home</a>
         <a href="{{ url_for('medication_scan') }}">Scan medication</a>
         <a href="{{ url_for('prayer_check') }}">Prayer check</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
     </nav>
     {% if current_user.is_authenticated %}
         <h1>Asalamualaikum {{ current_user.name }}!</h1>
