@@ -439,21 +439,57 @@ def get_or_create_task_reminder(elder_id, title, category, created_by):
 @app.route("/elder/medications/<int:medication_id>/done", methods=["POST"])
 @login_required
 def medication_done(medication_id):
-    if current_user.role != "elder":
+    if current_user.role == "elder":
+        elder_id = current_user.user_id
+        redirect_target = "elder"
+    elif current_user.role == "caregiver":
+        elder_id = get_linked_elder_id()
+        if elder_id is None:
+            abort(403)
+
+        responsibility_row = get_db().execute(
+            "SELECT medication FROM Responsibilities WHERE caregiver_id = ?",
+            [current_user.user_id]
+        ).fetchone()
+        if not responsibility_row or not responsibility_row[0]:
+            abort(403)
+
+        redirect_target = "log_tasks"
+    else:
         abort(403)
+
     db = get_db()
     medication = db.execute(
-            "SELECT name FROM Medications WHERE id = ? AND elder_id = ?",
-            [medication_id, current_user.user_id]
+        "SELECT name FROM Medications WHERE id = ? AND elder_id = ?",
+        [medication_id, elder_id]
     ).fetchone()
     if not medication:
         abort(404)
-    reminder_id = get_or_create_task_reminder(current_user.user_id, medication[0], "medication", current_user.user_id)
-    db.execute("INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
-                         [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
-    notify_caregivers(current_user.user_id, "medication", f"{current_user.name} took {medication[0]}.")
+
+    reminder_id = get_or_create_task_reminder(elder_id, medication[0], "medication", current_user.user_id)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    existing = db.execute(
+        "SELECT id FROM TaskLogs WHERE reminder_id = ? AND logged_at = ? LIMIT 1",
+        [reminder_id, today]
+    ).fetchone()
+
+    if existing:
+        db.execute(
+            "UPDATE TaskLogs SET logged_by = ?, status = 'done', logged_at = ? WHERE id = ?",
+            [current_user.user_id, today, existing[0]]
+        )
+    else:
+        db.execute(
+            "INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
+            [reminder_id, current_user.user_id, today]
+        )
+
+    if current_user.role == "elder":
+        notify_caregivers(elder_id, "medication", f"{current_user.name} took {medication[0]}.")
+
     db.commit()
-    return redirect(url_for("elder"))
+    return redirect(url_for(redirect_target))
 
 
 @app.route("/elder/reminders", methods=["POST"])
@@ -481,6 +517,9 @@ def add_elder_reminder():
     frequency = request.form.get("frequency", "one_time")
     scheduled_time = request.form.get("scheduled_time", "").strip()
     scheduled_date = request.form.get("scheduled_date", "").strip()
+    if not scheduled_date:
+        scheduled_date = datetime.now().strftime("%Y-%m-%d")
+
     if not title or frequency not in {"one_time", "daily", "weekly"}:
         flash("A reminder title and valid frequency are required.")
         return redirect(url_for("elder") if current_user.role == "elder" else url_for("log_tasks"))

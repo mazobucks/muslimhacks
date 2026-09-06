@@ -26,9 +26,8 @@
             <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Connect and Care logo">
         </a>
         <a href="{{ url_for('caregiver') }}">home</a>
-        <a href="{{ url_for('add_meds') }}">addMeds</a>
-        <a href="{{ url_for('log_tasks') }}">logTask</a>
-        <a href="{{ url_for('caregiver') }}">settings</a>
+        <a href="{{ url_for('add_meds') }}">Medication</a>
+        <a href="{{ url_for('log_tasks') }}">Tasks</a>
         <a href="{{ url_for('logout') }}">logout</a>
     </nav>
     {% if current_user.is_authenticated %}
