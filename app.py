@@ -4,7 +4,7 @@ import sqlite3
 import secrets
 import json
 import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlite3
 from flask_login import current_user, login_required, login_user, UserMixin, LoginManager, logout_user
 import werkzeug
@@ -199,7 +199,7 @@ def login():
         if user.role == 'caregiver':
             return redirect(url_for("caregiver"))
         else:
-            return redirect(url_for('elderhome'))
+            return redirect(url_for('elder'))
 
     except Exception as e:
         print("Login error:", e)
@@ -212,10 +212,171 @@ def logout():
     logout_user()
     return redirect(url_for("login"))
   
-@app.route("/")
+@app.route("/elder")
 @login_required
-def home():
-  return render_template("home.html")
+def elder():
+    if current_user.role != "elder":
+        abort(403)
+
+    db = get_db()
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+
+    medication_rows = db.execute(
+            "SELECT id, name, dosage, schedule_time FROM Medications WHERE elder_id = ? ORDER BY schedule_time, name",
+            [current_user.user_id]
+    ).fetchall()
+    medications = []
+    for row in medication_rows:
+        start_time = parse_schedule_time(row[3])
+        end_time = start_time + timedelta(hours=1) if start_time else None
+        log = db.execute(
+                """SELECT status FROM TaskLogs WHERE reminder_id = (
+                         SELECT id FROM Reminders WHERE elder_id = ? AND category = 'medication' AND title = ? LIMIT 1
+                     ) AND date(logged_at) = ? ORDER BY logged_at DESC LIMIT 1""",
+                [current_user.user_id, row[1], today]
+        ).fetchone()
+        medications.append({
+                "id": row[0], "name": row[1], "dosage": row[2],
+                "schedule_time": format_time(start_time),
+                "ends_at": format_time(end_time),
+                "status": medication_status(now, start_time, log[0] if log else None),
+        })
+
+    custom_reminders = db.execute(
+            """SELECT id, title, description, frequency, scheduled_time
+                 FROM Reminders WHERE elder_id = ? AND category = 'custom' AND active = 1
+                 ORDER BY scheduled_time, id""",
+            [current_user.user_id]
+    ).fetchall()
+
+    prayer = get_prayer_summary()
+    prayer_log = get_today_task_log(current_user.user_id, prayer["current"]["name"], "prayer", today)
+    prayer["current"]["done"] = bool(prayer_log and prayer_log[0] == "done")
+
+    return render_template("elder.html", prayer=prayer, medications=medications,
+                                                 custom_reminders=custom_reminders, now=now)
+
+
+def parse_schedule_time(value):
+    if not value:
+        return None
+    for pattern in ("%H:%M", "%I:%M %p"):
+        try:
+            return datetime.strptime(value.strip(), pattern).replace(year=2000, month=1, day=1)
+        except ValueError:
+            continue
+    return None
+
+
+def format_time(value):
+    return value.strftime("%I:%M %p").lstrip("0") if value else "Not scheduled"
+
+
+def medication_status(now, start_time, log_status):
+    if log_status == "done":
+        return "done"
+    if not start_time:
+        return "unscheduled"
+    current = now.replace(year=2000, month=1, day=1, second=0, microsecond=0)
+    end_time = start_time + timedelta(hours=1)
+    if current < start_time:
+        return "upcoming"
+    if current <= end_time:
+        return "now"
+    return "missed"
+
+
+def get_today_task_log(elder_id, title, category, today):
+    return get_db().execute(
+            """SELECT tl.status FROM TaskLogs tl JOIN Reminders r ON r.id = tl.reminder_id
+                 WHERE r.elder_id = ? AND r.title = ? AND r.category = ? AND date(tl.logged_at) = ?
+                 ORDER BY tl.logged_at DESC LIMIT 1""",
+            [elder_id, title, category, today]
+    ).fetchone()
+
+
+def get_prayer_summary():
+    try:
+        response = requests.get(
+                "https://api.aladhan.com/v1/timings",
+                params={"latitude": DEFAULT_LAT, "longitude": DEFAULT_LNG, "method": 2},
+                timeout=5,
+        )
+        timings = response.json()["data"]["timings"]
+    except Exception:
+        timings = {name: "--:--" for name in FARD_RAKAHS}
+
+    now_text = datetime.now().strftime("%H:%M")
+    ordered = list(FARD_RAKAHS)
+    current_index = -1
+    for index, name in enumerate(ordered):
+        if timings.get(name, "99:99") <= now_text:
+            current_index = index
+    if current_index == -1:
+        current_index = len(ordered) - 1
+    next_index = (current_index + 1) % len(ordered)
+    return {
+            "current": {"name": ordered[current_index], "time": timings.get(ordered[current_index], "--:--")},
+            "next": {"name": ordered[next_index], "time": timings.get(ordered[next_index], "--:--")},
+    }
+
+
+def get_or_create_task_reminder(elder_id, title, category, created_by):
+    db = get_db()
+    row = db.execute(
+            "SELECT id FROM Reminders WHERE elder_id = ? AND category = ? AND title = ? LIMIT 1",
+            [elder_id, category, title]
+    ).fetchone()
+    if row:
+        return row[0]
+    cursor = db.execute(
+            "INSERT INTO Reminders (elder_id, created_by, category, title, frequency) VALUES (?, ?, ?, ?, 'daily')",
+            [elder_id, created_by, category, title]
+    )
+    db.commit()
+    return cursor.lastrowid
+
+
+@app.route("/elder/medications/<int:medication_id>/done", methods=["POST"])
+@login_required
+def medication_done(medication_id):
+    if current_user.role != "elder":
+        abort(403)
+    db = get_db()
+    medication = db.execute(
+            "SELECT name FROM Medications WHERE id = ? AND elder_id = ?",
+            [medication_id, current_user.user_id]
+    ).fetchone()
+    if not medication:
+        abort(404)
+    reminder_id = get_or_create_task_reminder(current_user.user_id, medication[0], "medication", current_user.user_id)
+    db.execute("INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
+                         [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+    db.commit()
+    return redirect(url_for("elder"))
+
+
+@app.route("/elder/reminders", methods=["POST"])
+@login_required
+def add_elder_reminder():
+    if current_user.role != "elder":
+        abort(403)
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+    frequency = request.form.get("frequency", "one_time")
+    scheduled_time = request.form.get("scheduled_time", "").strip()
+    if not title or frequency not in {"one_time", "daily", "weekly"}:
+        flash("A reminder title and valid frequency are required.")
+        return redirect(url_for("elder"))
+    db = get_db()
+    db.execute(
+            """INSERT INTO Reminders (elder_id, created_by, category, title, description, frequency, scheduled_time)
+                 VALUES (?, ?, 'custom', ?, ?, ?, ?)""",
+            [current_user.user_id, current_user.user_id, title, description, frequency, scheduled_time or None]
+    )
+    db.commit()
+    return redirect(url_for("elder"))
 
 FARD_RAKAHS = {
     "Fajr": 2,
@@ -320,8 +481,8 @@ def end_prayer():
         status = "missed"
 
     db.execute(
-        "INSERT INTO TaskLogs (reminder_id, logged_by, status) VALUES (?, ?, ?)",
-        [reminder_id, elder_id, status],
+        "INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, ?, ?)",
+        [reminder_id, elder_id, status, datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
     )
 
     caregiver_id = get_primary_caregiver(elder_id)
