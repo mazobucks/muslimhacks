@@ -4,78 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #f3f8ff, #e8f3ea);
-            font-family: Arial, sans-serif;
-            color: #1e2a38;
+        .action-box {
+            display: block;
+            width: fit-content;
+            max-width: 100%;
+            margin: 1.5rem auto 0;
+            border: 1px solid #2b3440;
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(180deg, #2f3a48 0%, #26313e 100%);
+            box-shadow: 0 12px 32px rgba(10, 14, 18, 0.6);
+            color: #ffffff;
         }
-        .container {
-            width: min(90%, 700px);
-            background: white;
-            border-radius: 20px;
-            padding: 40px 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            text-align: center;
-        }
-        h1 {
-            margin: 0 0 15px;
-            font-size: clamp(2rem, 5vw, 3rem);
-        }
-        p {
-            margin: 0 0 30px;
-            font-size: 1.1rem;
-            color: #4a5b6b;
-        }
+
         .actions {
             display: flex;
             justify-content: center;
-            gap: 20px;
+            align-items: center;
+            gap: 1rem;
             flex-wrap: wrap;
+            padding: 0.25rem;
         }
-        .btn {
-            display: inline-block;
-            min-width: 180px;
-            padding: 16px 26px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1.05rem;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        .actions .btn {
+            min-width: 120px;
+            text-align: center;
+            margin: 0.25rem;
+            transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, color 150ms ease;
+            color: #ffffff !important;
+            background-color: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(5,8,12,0.4);
         }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+
+        .actions .btn:hover {
+            transform: translateY(-4px);
+            background-color: rgba(255,255,255,0.12);
+            box-shadow: 0 10px 28px rgba(5,8,12,0.6);
+            color: #ffffff !important;
         }
-        .btn-primary {
-            background: #1e7f5b;
-            color: white;
+
+        /* stronger contrast for primary/secondary if those classes exist */
+        .actions .btn.btn-primary {
+            background-color: rgb(155, 80, 226);
+            border-color: #6b7f97;
         }
-        .btn-secondary {
-            background: #eaf1ff;
-            color: #1d3557;
+
+        .actions .btn.btn-primary:hover {
+            background-color: #2e465a;
+            border-color: #2a3b4a;
         }
-        .small-text {
-            margin-top: 18px;
-            font-size: 0.95rem;
-            color: #596d80;
+
+        .actions .btn.btn-secondary {
+            background-color: rgb(155, 80, 226);
+            border-color: #8b9aa9;
         }
+
+        .actions .btn.btn-secondary:hover {
+            background-color: #4b5e6c;
+            border-color: #394c56;
+        }
+        
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome</h1>
-        <p>Login as an elder or caregiver, or sign up as a primary caregiver.</p>
+        <h1 style="text-align: center;">Welcome</h1>
+        <p style="text-align: center;">Login as an elder or caregiver, or sign up as a primary caregiver.</p>
 
-        <div class="actions">
-            <a href="{{ url_for('signup') }}" class="btn btn-primary">Sign Up</a>
-            <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+        <div class="action-box">
+            <div class="actions">
+                <a href="{{ url_for('signup') }}" class="btn btn-primary">Sign Up</a>
+                <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+            </div>
         </div>
     </div>
 </body>

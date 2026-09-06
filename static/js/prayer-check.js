@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     statusEl.textContent = "Starting camera…";
     await startWebcam();
     await ensurePoseLandmarker();
-    statusEl.textContent = "Put the line on waist level. Select a prayer to begin.";
+    statusEl.textContent = "Put the line on waist level or neck level if sitting. Select a prayer to begin.";
 
     previewLoop(); // start drawing line + nose dot immediately, continuously
   } catch (err) {
@@ -239,6 +239,7 @@ function previewLoop() {
           crossingCount++;
           rakahCount = Math.floor(crossingCount / 2);
           updateRakahDisplay();
+
         }
       } else if (!isBelow && headBelowLine) {
         headBelowLine = false;
@@ -313,6 +314,10 @@ endBtn.addEventListener("click", async () => {
   document.querySelector(".right-panel").style.display = "";
   document.querySelector(".rakah-display").classList.remove("BIG");
 });
+
+
+
+
 
 /* ---------------- Init ---------------- */
 

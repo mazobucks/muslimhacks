@@ -55,6 +55,38 @@
     font-size: 1.1rem;
     cursor: pointer;
   }
+  #notif-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  #notif-list li {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid #333;
+    padding: 0.5rem 0;
+  }
+  #notif-list li:last-child {
+    border-bottom: none;
+  }
+  .notif-text {
+    flex: 1;
+  }
+  .notif-time {
+    display: block;
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+  .notif-dismiss {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+  }
 </style>
 {% endblock %}
 
@@ -106,9 +138,17 @@
     <h3>notifs</h3>
     <ul id="notif-list">
       {% for n in notifications %}
-        <li>{{ n.message }}</li>
+        <li data-notif-id="{{ n.id }}">
+          <span class="notif-text">
+            {{ n.message }}
+            <span class="notif-time">{{ n.created_at }}</span>
+          </span>
+          <form class="notif-dismiss-form" method="post" action="{{ url_for('dismiss_notification', notification_id=n.id) }}">
+            <button type="submit" class="notif-dismiss" aria-label="Dismiss notification" title="Mark as read">&times;</button>
+          </form>
+        </li>
       {% else %}
-        <li>No notifications</li>
+        <li id="no-notifs">No notifications</li>
       {% endfor %}
     </ul>
   </div>
@@ -117,4 +157,32 @@
 
 {% endblock %}
 
-{% block scripts %}{% endblock %}
+{% block scripts %}
+<script>
+  // Dismiss a notification without a full page reload: mark it read on the
+  // server, then remove it from the list client-side.
+  document.querySelectorAll('.notif-dismiss-form').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const li = form.closest('li');
+      fetch(form.action, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' }
+      }).then(function (response) {
+        if (!response.ok) throw new Error('Failed to dismiss notification');
+        li.remove();
+        const list = document.getElementById('notif-list');
+        if (!list.querySelector('li')) {
+          const empty = document.createElement('li');
+          empty.id = 'no-notifs';
+          empty.textContent = 'No notifications';
+          list.appendChild(empty);
+        }
+      }).catch(function () {
+        // Fall back to a normal form submission if the fetch failed.
+        form.submit();
+      });
+    });
+  });
+</script>
+{% endblock %}

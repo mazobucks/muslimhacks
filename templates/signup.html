@@ -4,76 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Caregiver Sign Up</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #f4f7fb;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-      }
-
-      .signup-container {
-        background: #ffffff;
-        padding: 32px;
-        border-radius: 12px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-        width: 100%;
-        max-width: 420px;
-      }
-
-      h2 {
-        margin-top: 0;
-        margin-bottom: 24px;
-        text-align: center;
-        color: #1f2937;
-      }
-
-      .form-group {
-        margin-bottom: 18px;
-      }
-
-      label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 600;
-        color: #374151;
-      }
-
-      input {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 12px 14px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 16px;
-      }
-
-      input:focus {
-        border-color: #2563eb;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-      }
-
-      button {
-        width: 100%;
-        background: #2563eb;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 12px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-
-      button:hover {
-        background: #1d4ed8;
-      }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
   </head>
   <body>
     <div class="signup-container">
@@ -95,6 +26,11 @@
         </div>
 
         <button type="submit">Sign Up</button>
+            <div class="action-box">
+                <div class="actions">
+                    <button type="submit">Sign Up</button>
+                </div>
+            </div>
       </form>
     </div>
   </body>
