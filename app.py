@@ -32,6 +32,15 @@ class Caregiver:
         self.medication = medication
         self.prayer = prayer
 
+class Medication:
+    def __init__(self, id, elder_id, name, dosage, schedule_time, created_by):
+        self.id = id
+        self.elder_id = elder_id
+        self.name = name
+        self.dosage = dosage
+        self.schedule_time = schedule_time
+        self.created_by = created_by
+
 class User(UserMixin):
     def __init__(self, id, name, password, role):
         self.id = name
@@ -392,6 +401,48 @@ def add_secondary_caregiver():
 
     flash(f"{full_name} has been added as a secondary caregiver.")
     return redirect(url_for("caregiver"))
+
+@app.route("/add_meds", methods=["GET", "POST"])
+@login_required
+def add_meds():
+    if current_user.role != "caregiver":
+        abort(403)
+
+    elder_id = get_linked_elder_id()
+    if elder_id is None:
+        flash("Add an elder before adding medications.")
+        return redirect(url_for("caregiver"))
+
+    db = get_db()
+
+    if request.method == "GET":
+        medication_rows = db.execute(
+            "SELECT id, elder_id, name, dosage, schedule_time, created_by "
+            "FROM Medications WHERE elder_id = ? ORDER BY created_at DESC",
+            [elder_id]
+        ).fetchall()
+        medications = [
+            Medication(row[0], row[1], row[2], row[3], row[4], row[5])
+            for row in medication_rows
+        ]
+        return render_template("meds.html", medications=medications)
+
+    name = request.form.get("name", "").strip()
+    dosage = request.form.get("dosage", "").strip()
+    schedule_time = request.form.get("schedule_time", "").strip()
+
+    if not name:
+        flash("Medication name is required.")
+        return redirect(url_for("add_meds"))
+
+    db.execute(
+        "INSERT INTO Medications (elder_id, name, dosage, schedule_time, created_by) VALUES (?, ?, ?, ?, ?)",
+        [elder_id, name, dosage, schedule_time, current_user.user_id]
+    )
+    db.commit()
+
+    flash(f"{name} has been added.")
+    return redirect(url_for("add_meds"))
 
 # Cleans up a database connection.
 @app.teardown_appcontext
