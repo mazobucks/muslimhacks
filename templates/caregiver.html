@@ -1,5 +1,141 @@
-{% extends 'base.html' %} 
-{% block title %}Caregiver{% endblock %} 
-{% block content %}
-<h2>caregiver home</h2>
+{% extends 'caregiver_base.html' %}
+{% block title %}Caregiver{% endblock %}
+
+{% block head %}
+<style>
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 220px;
+    grid-template-rows: auto auto;
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+  .thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+  }
+  .card {
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+  .elder-card { grid-column: 1; grid-row: 1; }
+  .secondary-card { grid-column: 2; grid-row: 1; }
+  .notifs-card { grid-column: 3; grid-row: 1 / 3; overflow-y: auto; }
+  .reminders-card { grid-column: 1 / 3; grid-row: 2; }
+  .add-btn {
+    font-size: 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 0.5rem;
+  }
+  .caregiver-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.3rem 0;
+  }
+  .no-photo {
+    width: 80px;
+    height: 80px;
+    border: 1px dashed #666;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+  .voice-btn-row {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+  .voice-btn {
+    width: 100%;
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+</style>
 {% endblock %}
+
+{% block content %}
+<div class="dash-grid">
+
+  <div class="card elder-card">
+    <h3>elder:</h3>
+    {% if elder %}
+      <p><em>NAME:</em> {{ elder.full_name }}</p>
+      <img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ elder.full_name }}">
+    {% else %}
+      <p>none</p>
+    {% endif %}
+    <a href="{{ url_for('add_elder') }}" class="add-btn" title="Add elder">+</a>
+  </div>
+
+  <div class="card secondary-card">
+    {% if is_primary %}
+      <h3>secondary caregivers:</h3>
+      {% for cg in secondary_caregivers %}
+        <div class="caregiver-row">
+          <strong>{{ cg.full_name }}</strong>
+          <img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ cg.full_name }}">
+          <ul class="role-list">
+            <li>Diet {{ '✔' if cg.diet else '✘' }}</li>
+            <li>Medication {{ '✔' if cg.medication else '✘' }}</li>
+            <li>Prayer {{ '✔' if cg.prayer else '✘' }}</li>
+          </ul>
+        </div>
+      {% else %}
+        <p>none yet</p>
+      {% endfor %}
+      <a href="{{ url_for('add_secondary_caregiver') }}" class="add-btn" title="Add secondary caregiver">+</a>
+    {% else %}
+      <h3>primary caregiver:</h3>
+      {% if primary_caregiver %}
+        <div class="caregiver-row">
+          <strong>{{ primary_caregiver.full_name }}</strong>
+          <img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ primary_caregiver.full_name }}">
+        </div>
+      {% else %}
+        <p>none</p>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="card notifs-card">
+    <h3>notifs</h3>
+    <ul id="notif-list">
+      {% for n in notifications %}
+        <li>{{ n.message }}</li>
+      {% else %}
+        <li>No notifications</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="card reminders-card">
+    <h3>reminders for elder</h3>
+    <ul id="reminder-list">
+      {% for r in reminders %}
+        <li>{{ r.title }} &mdash; {{ r.scheduled_time }}</li>
+      {% else %}
+        <li>No reminders yet</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+</div>
+
+<div class="voice-btn-row">
+  <button id="voice-btn" class="voice-btn" type="button">🎤 voice button</button>
+</div>
+{% endblock %}
+
+{% block scripts %}{% endblock %}

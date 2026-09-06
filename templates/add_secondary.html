@@ -1,0 +1,41 @@
+{% extends 'caregiver_base.html' %}
+{% block title %}Add Secondary Caregiver{% endblock %}
+
+{% block content %}
+<h2>Add secondary caregiver</h2>
+
+<form method="post" action="{{ url_for('add_secondary_caregiver') }}">
+  <label for="full_name">Full name</label>
+  <input type="text" id="full_name" name="full_name" required>
+
+  <label for="username">Username (for their login)</label>
+  <input type="text" id="username" name="username" required>
+
+  <label for="password">Password</label>
+  <input type="password" id="password" name="password" required>
+
+  <fieldset>
+    <legend>Responsibilities</legend>
+
+    <label>
+      <input type="checkbox" name="diet">
+      Diet
+    </label>
+
+    <label>
+      <input type="checkbox" name="medication">
+      Medication
+    </label>
+
+    <label>
+      <input type="checkbox" name="prayer">
+      Prayer
+    </label>
+  </fieldset>
+
+  <div class="modal-actions">
+    <a href="{{ url_for('caregiver') }}">Cancel</a>
+    <button type="submit">Add caregiver</button>
+  </div>
+</form>
+{% endblock %}
