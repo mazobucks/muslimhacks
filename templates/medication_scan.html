@@ -1,0 +1,29 @@
+{% extends 'elder_base.html' %}
+{% block title %}Scan Medication{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/medication-scan.css') }}">
+{% endblock %}
+{% block content %}
+<main class="medication-scan-page">
+  <section class="scanner-panel">
+    <h2>Scan medication</h2>
+    <p>Point the camera at a medication QR code.</p>
+    <div id="qr-reader" aria-label="Medication QR code camera"></div>
+    <div id="scan-status" role="status">Camera is starting...</div>
+  </section>
+
+  <section id="medication-details" class="medication-details" hidden aria-live="polite">
+    <p class="details-label">Medication details</p>
+    <h1 id="medication-name"></h1>
+    <div class="detail-row"><span>Medication ID</span><strong id="medication-id"></strong></div>
+    <div class="detail-row"><span>Dosage</span><strong id="medication-dosage"></strong></div>
+    <div class="detail-row"><span>Scheduled time</span><strong id="medication-time"></strong></div>
+    <button id="log-medication-button" class="log-medication-button" type="button" disabled>Log medication</button>
+    <div id="log-medication-status" class="log-medication-status" role="status"></div>
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script src="{{ url_for('static', filename='js/medication-scan.js') }}" defer></script>
+{% endblock %}

@@ -66,6 +66,55 @@
     color: rgb(220, 220, 228);
 }
 
+.reminder-check-form {
+    margin: 0;
+}
+
+.reminder-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .45rem;
+    float: right;
+    margin-left: .75rem;
+}
+
+.reminder-check {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    color: rgb(195, 145, 245);
+    cursor: pointer;
+    font-size: .9rem;
+}
+
+.reminder-check input {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin: 0;
+    accent-color: rgb(155, 80, 226);
+    cursor: pointer;
+}
+
+.trash-button {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid rgb(105, 105, 125);
+    border-radius: 6px;
+    background: transparent;
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.trash-button:hover {
+    background: rgb(70, 70, 85);
+    border-color: rgb(195, 145, 245);
+}
+
 .take-button,
 .add-reminder {
     border: 0;
@@ -117,6 +166,13 @@
     background: rgb(12, 12, 24);
     color: white;
     font: inherit;
+}
+
+.reminder-form input[type="time"]::-webkit-calendar-picker-indicator,
+.reminder-form input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 1;
+    cursor: pointer;
 }
 
 .reminder-form button {

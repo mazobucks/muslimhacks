@@ -150,22 +150,106 @@ if not database_exists:
         FOREIGN KEY (from_user) REFERENCES Users(id),
         FOREIGN KEY (to_user) REFERENCES Users(id)
     )""")
-
+    
     # --- Elder ---
+    db.execute(
+        "INSERT INTO Users (username, password, role) VALUES (?, ?, ?)",
+        ["fatima", "1234", "elder"],
+    )
+    elder_user_id = db.execute(
+        "SELECT id FROM Users WHERE username = ?", ["fatima"]
+    ).fetchone()[0]
+
+    db.execute(
+        "INSERT INTO Elders (id, full_name, language) VALUES (?, ?, ?)",
+        [elder_user_id, "Fatima Al-Mansoor", "English"],
+    )
 
     # --- Caregiver (primary, tied to the elder above) ---
-    db.execute("INSERT INTO Users (username, password, role) VALUES (?, ?, ?)",
-            ["yusuf", "9999", "caregiver"])
-    caregiver_user_id = db.execute("SELECT id FROM Users WHERE username = ?", ["yusuf"]).fetchone()[0]
+    db.execute(
+        "INSERT INTO Users (username, password, role) VALUES (?, ?, ?)",
+        ["yusuf", "9999", "caregiver"],
+    )
+    caregiver_user_id = db.execute(
+        "SELECT id FROM Users WHERE username = ?", ["yusuf"]
+    ).fetchone()[0]
 
-    db.execute("INSERT INTO Caregivers (id, full_name, elder_id, is_primary) VALUES (?, ?, ?, ?)",
-        [caregiver_user_id, "Yusuf Ahmed", None, 0])   # elder_id = NULL, no elder yet
+    db.execute(
+        "INSERT INTO Caregivers (id, full_name, elder_id, is_primary) VALUES (?, ?, ?, ?)",
+        [caregiver_user_id, "Yusuf Ahmed", elder_user_id, 1],
+    )
 
-    db.execute("INSERT INTO Responsibilities (caregiver_id) VALUES (?)",
-        [caregiver_user_id])
+    db.execute(
+        "INSERT INTO Responsibilities (caregiver_id) VALUES (?)",
+        [caregiver_user_id],
+    )
 
+    # --- Mock Medications & Reminders ---
+    mock_meds = [
+        (
+            elder_user_id,
+            "Lisinopril",
+            "10mg - 1 Tablet",
+            "08:00 AM",
+            caregiver_user_id,
+        ),
+        (
+            elder_user_id,
+            "Metformin",
+            "500mg - 1 Tablet",
+            "01:00 PM",
+            caregiver_user_id,
+        ),
+        (
+            elder_user_id,
+            "Atorvastatin",
+            "20mg - 1 Tablet",
+            "08:00 PM",
+            caregiver_user_id,
+        ),
+        (
+            elder_user_id,
+            "Vitamin D3",
+            "1000 IU - 1 Softgel",
+            "08:00 AM",
+            caregiver_user_id,
+        ),
+    ]
+
+    db.executemany(
+        """INSERT INTO Medications (elder_id, name, dosage, schedule_time, created_by)
+           VALUES (?, ?, ?, ?, ?)""",
+        mock_meds,
+    )
+
+    mock_reminders = [
+        (
+            elder_user_id,
+            caregiver_user_id,
+            "medication",
+            m[1],
+            f"Take {m[2]}",
+            "daily",
+            m[3],
+        )
+        for m in mock_meds
+    ]
+
+    db.executemany(
+        """INSERT INTO Reminders (elder_id, created_by, category, title, description, frequency, scheduled_time)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        mock_reminders,
+    )
+    
     db.commit()
 
+# Keep existing databases compatible with reminder start dates.
+if "scheduled_date" not in [row[1] for row in db.execute("PRAGMA table_info(Reminders)").fetchall()]:
+    db.execute("ALTER TABLE Reminders ADD COLUMN scheduled_date DATE")
+    db.commit()
+
+##db.execute("DELETE FROM TaskLogs")
+db.commit()
 
 # Gets a database connection.
 def get_db():
@@ -239,10 +323,14 @@ def build_reminder_context(elder_id):
         })
 
     custom_reminders = db.execute(
-            """SELECT id, title, description, frequency, scheduled_time
-                 FROM Reminders WHERE elder_id = ? AND category = 'custom' AND active = 1
+            """SELECT r.id, r.title, r.description, r.frequency, r.scheduled_time, r.scheduled_date,
+                EXISTS (
+                    SELECT 1 FROM TaskLogs tl
+                    WHERE tl.reminder_id = r.id AND tl.status = 'done' AND date(tl.logged_at) = ?
+                ) AS done
+             FROM Reminders r WHERE r.elder_id = ? AND r.category = 'custom' AND r.active = 1
                  ORDER BY scheduled_time, id""",
-            [elder_id]
+            [today, elder_id]
     ).fetchall()
 
     prayer = get_prayer_summary()
@@ -377,18 +465,94 @@ def add_elder_reminder():
     description = request.form.get("description", "").strip()
     frequency = request.form.get("frequency", "one_time")
     scheduled_time = request.form.get("scheduled_time", "").strip()
+    scheduled_date = request.form.get("scheduled_date", "").strip()
     if not title or frequency not in {"one_time", "daily", "weekly"}:
         flash("A reminder title and valid frequency are required.")
         return redirect(url_for("elder") if current_user.role == "elder" else url_for("log_tasks"))
+    if frequency != "one_time" and not scheduled_date:
+        flash("Choose a start date for repeating reminders.")
+        return redirect(url_for("elder") if current_user.role == "elder" else url_for("log_tasks"))
+    if scheduled_date:
+        try:
+            datetime.strptime(scheduled_date, "%Y-%m-%d")
+        except ValueError:
+            flash("Choose a valid reminder date.")
+            return redirect(url_for("elder") if current_user.role == "elder" else url_for("log_tasks"))
 
     db = get_db()
     db.execute(
-            """INSERT INTO Reminders (elder_id, created_by, category, title, description, frequency, scheduled_time)
-                 VALUES (?, ?, 'custom', ?, ?, ?, ?)""",
-            [elder_id, current_user.user_id, title, description, frequency, scheduled_time or None]
+              """INSERT INTO Reminders (elder_id, created_by, category, title, description, frequency, scheduled_time, scheduled_date)
+                  VALUES (?, ?, 'custom', ?, ?, ?, ?, ?)""",
+              [elder_id, current_user.user_id, title, description, frequency, scheduled_time or None, scheduled_date or None]
     )
     db.commit()
     return redirect(url_for("elder") if current_user.role == "elder" else url_for("log_tasks"))
+
+
+@app.route("/reminders/<int:reminder_id>/toggle", methods=["POST"])
+@login_required
+def toggle_reminder(reminder_id):
+    if current_user.role == "elder":
+        elder_id = current_user.user_id
+        redirect_endpoint = "elder"
+    elif current_user.role == "caregiver":
+        elder_id = get_linked_elder_id()
+        if elder_id is None:
+            abort(403)
+        redirect_endpoint = "log_tasks"
+    else:
+        abort(403)
+
+    db = get_db()
+    reminder = db.execute(
+            "SELECT id FROM Reminders WHERE id = ? AND elder_id = ? AND category = 'custom' AND active = 1",
+            [reminder_id, elder_id]
+    ).fetchone()
+    if not reminder:
+        abort(404)
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    existing_log = db.execute(
+            "SELECT id FROM TaskLogs WHERE reminder_id = ? AND status = 'done' AND date(logged_at) = ? LIMIT 1",
+            [reminder_id, today]
+    ).fetchone()
+    if existing_log:
+        db.execute("DELETE FROM TaskLogs WHERE id = ?", [existing_log[0]])
+    else:
+        db.execute(
+                "INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
+                [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+        )
+    db.commit()
+    return redirect(url_for(redirect_endpoint))
+
+
+@app.route("/reminders/<int:reminder_id>/delete", methods=["POST"])
+@login_required
+def delete_reminder(reminder_id):
+    if current_user.role == "elder":
+        elder_id = current_user.user_id
+        redirect_endpoint = "elder"
+    elif current_user.role == "caregiver":
+        elder_id = get_linked_elder_id()
+        if elder_id is None:
+            abort(403)
+        redirect_endpoint = "log_tasks"
+    else:
+        abort(403)
+
+    db = get_db()
+    reminder = db.execute(
+            "SELECT id FROM Reminders WHERE id = ? AND elder_id = ? AND category = 'custom' AND active = 1",
+            [reminder_id, elder_id]
+    ).fetchone()
+    if not reminder:
+        abort(404)
+
+    db.execute("DELETE FROM TaskLogs WHERE reminder_id = ?", [reminder_id])
+    db.execute("DELETE FROM Reminders WHERE id = ?", [reminder_id])
+    db.commit()
+    return redirect(url_for(redirect_endpoint))
 
 FARD_RAKAHS = {
     "Fajr": 2,
@@ -739,6 +903,95 @@ def add_meds():
 
     flash(f"{name} has been added.")
     return redirect(url_for("add_meds"))
+
+
+@app.route("/medication-scan")
+@login_required
+def medication_scan():
+    return render_template("medication_scan.html")
+
+
+@app.route("/api/medications/<int:medication_id>")
+@login_required
+def medication_details(medication_id):
+    if current_user.role == "elder":
+        elder_id = current_user.user_id
+    elif current_user.role == "caregiver":
+        elder_id = get_linked_elder_id()
+        if elder_id is None:
+            abort(403)
+    else:
+        abort(403)
+
+    db = get_db()
+    medication = db.execute(
+        """SELECT id, name, dosage, schedule_time
+           FROM Medications WHERE id = ? AND elder_id = ?""",
+        [medication_id, elder_id]
+    ).fetchone()
+    if not medication:
+        return {"error": "Medication not found"}, 404
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    reminder_log = db.execute(
+        """SELECT tl.status FROM TaskLogs tl
+           JOIN Reminders r ON r.id = tl.reminder_id
+           WHERE r.elder_id = ? AND r.category = 'medication' AND r.title = ?
+             AND date(tl.logged_at) = ?
+           ORDER BY tl.logged_at DESC LIMIT 1""",
+        [elder_id, medication[1], today]
+    ).fetchone()
+    schedule_time = parse_schedule_time(medication[3])
+    status = medication_status(datetime.now(), schedule_time, reminder_log[0] if reminder_log else None)
+
+    return {
+        "id": medication[0],
+        "name": medication[1],
+        "dosage": medication[2] or "Not specified",
+        "schedule_time": medication[3] or "Not scheduled",
+        "status": status,
+        "can_take": status == "now",
+    }
+
+
+@app.route("/api/medications/<int:medication_id>/done", methods=["POST"])
+@login_required
+def scan_medication_done(medication_id):
+    if current_user.role == "elder":
+        elder_id = current_user.user_id
+    elif current_user.role == "caregiver":
+        elder_id = get_linked_elder_id()
+        if elder_id is None:
+            abort(403)
+    else:
+        abort(403)
+
+    db = get_db()
+    medication = db.execute(
+        "SELECT name, schedule_time FROM Medications WHERE id = ? AND elder_id = ?",
+        [medication_id, elder_id]
+    ).fetchone()
+    if not medication:
+        return {"error": "Medication not found"}, 404
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    existing_log = db.execute(
+        """SELECT tl.status FROM TaskLogs tl JOIN Reminders r ON r.id = tl.reminder_id
+           WHERE r.elder_id = ? AND r.category = 'medication' AND r.title = ?
+             AND date(tl.logged_at) = ? ORDER BY tl.logged_at DESC LIMIT 1""",
+        [elder_id, medication[0], today]
+    ).fetchone()
+    start_time = parse_schedule_time(medication[1])
+    if medication_status(datetime.now(), start_time, existing_log[0] if existing_log else None) != "now":
+        return {"error": "This medication can only be logged during its one-hour schedule window."}, 409
+
+    reminder_id = get_or_create_task_reminder(elder_id, medication[0], "medication", current_user.user_id)
+    db.execute(
+        "INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
+        [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+    )
+    db.commit()
+    return {"ok": True, "status": "done"}
 
 
 @app.route("/remove_medication/<int:medication_id>", methods=["POST"])
