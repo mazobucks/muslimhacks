@@ -80,12 +80,28 @@
     opacity: 0.7;
   }
   .notif-dismiss {
-    background: none;
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #333;
+    color: #fff;
     border: none;
+    border-radius: 50%;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 1.15rem;
+    font-weight: bold;
     line-height: 1;
-    padding: 0 0.25rem;
+    padding: 0;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .notif-dismiss:hover {
+    background: #c0392b;
+  }
+  .notif-dismiss:active {
+    transform: scale(0.92);
   }
 </style>
 {% endblock %}
@@ -145,9 +161,7 @@
             {{ n.message }}
             <span class="notif-time">{{ n.created_at }}</span>
           </span>
-          <form class="notif-dismiss-form" method="post" action="{{ url_for('dismiss_notification', notification_id=n.id) }}">
-            <button type="submit" class="notif-dismiss" aria-label="Dismiss notification" title="Mark as read">&times;</button>
-          </form>
+          <button type="button" class="notif-dismiss" aria-label="Dismiss notification" title="Mark as read">&times;</button>
         </li>
       {% else %}
         <li id="no-notifs">No notifications</li>
@@ -161,30 +175,82 @@
 
 {% block scripts %}
 <script>
-  // Dismiss a notification without a full page reload: mark it read on the
-  // server, then remove it from the list client-side.
-  document.querySelectorAll('.notif-dismiss-form').forEach(function (form) {
-    form.addEventListener('submit', function (event) {
-      event.preventDefault();
-      const li = form.closest('li');
-      fetch(form.action, {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'fetch' }
-      }).then(function (response) {
-        if (!response.ok) throw new Error('Failed to dismiss notification');
-        li.remove();
-        const list = document.getElementById('notif-list');
-        if (!list.querySelector('li')) {
-          const empty = document.createElement('li');
-          empty.id = 'no-notifs';
-          empty.textContent = 'No notifications';
-          list.appendChild(empty);
-        }
-      }).catch(function () {
-        // Fall back to a normal form submission if the fetch failed.
-        form.submit();
-      });
-    });
+const notifList = document.getElementById('notif-list');
+
+function dismissNotification(id, li) {
+  fetch(`/notifications/${id}/dismiss`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'fetch' }
+  }).then(res => {
+    if (!res.ok) throw new Error('Failed to dismiss notification');
+    li.remove();
+    if (!notifList.querySelector('li')) {
+      const empty = document.createElement('li');
+      empty.id = 'no-notifs';
+      empty.textContent = 'No notifications';
+      notifList.appendChild(empty);
+    }
+  }).catch(() => {
+    // fall back to a real navigation if fetch fails
+    window.location.href = `/notifications/${id}/dismiss`;
   });
+}
+
+// One delegated listener handles dismiss clicks for any <li>,
+// including ones added later by loadNotifications().
+notifList.addEventListener('click', (event) => {
+  const btn = event.target.closest('.notif-dismiss');
+  if (!btn) return;
+  event.preventDefault();
+  const li = btn.closest('li');
+  dismissNotification(li.dataset.notifId, li);
+});
+
+function loadNotifications() {
+  fetch('/api/notifications')
+    .then(res => res.json())
+    .then(data => {
+      while (notifList.firstChild) {
+        notifList.removeChild(notifList.firstChild);
+      }
+
+      if (data.length === 0) {
+        const li = document.createElement('li');
+        li.id = 'no-notifs';
+        li.textContent = 'No notifications';
+        notifList.appendChild(li);
+        return;
+      }
+
+      data.forEach(n => {
+        const li = document.createElement('li');
+        li.dataset.notifId = n.id;
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'notif-text';
+        textSpan.appendChild(document.createTextNode(n.message + ' '));
+
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'notif-time';
+        timeSpan.textContent = n.created_at;
+        textSpan.appendChild(timeSpan);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'notif-dismiss';
+        btn.setAttribute('aria-label', 'Dismiss notification');
+        btn.title = 'Mark as read';
+        btn.innerHTML = '&times;';
+
+        li.appendChild(textSpan);
+        li.appendChild(btn);
+        notifList.appendChild(li);
+      });
+    })
+    .catch(err => console.error('Failed to load notifications:', err));
+}
+
+loadNotifications();
+setInterval(loadNotifications, 3000);
 </script>
 {% endblock %}
