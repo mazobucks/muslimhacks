@@ -13,6 +13,7 @@ import requests
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16) # This is necessary for flash!
+app.config["ELEVENLABS_AGENT_ID"] = "agent_0301m1tr1k8jf4d8p9cjf0cmss59"
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -370,6 +371,13 @@ def add_elder_reminder():
         if elder_id is None:
             flash("Add an elder before adding a reminder.")
             return redirect(url_for("caregiver"))
+
+        responsibility_row = get_db().execute(
+            "SELECT custom FROM Responsibilities WHERE caregiver_id = ?",
+            [current_user.user_id]
+        ).fetchone()
+        if not responsibility_row or not responsibility_row[0]:
+            abort(403)
     else:
         abort(403)
 
@@ -925,6 +933,34 @@ def signup():
     flash("Account created! Please log in.")
     return redirect(url_for("login_form"))
 
+@app.context_processor
+def inject_settings():
+    return {
+        "ELEVENLABS_AGENT_ID": app.config["ELEVENLABS_AGENT_ID"]
+    }
+
+@app.context_processor
+def inject_current_elder():
+    """Makes the logged-in caregiver's linked elder (or the elder themself)
+    available as `current_elder` in every template, without each route
+    needing to fetch and pass it manually."""
+    if not current_user.is_authenticated:
+        return {"current_elder": None}
+
+    if current_user.role == "caregiver":
+        elder_id = get_linked_elder_id()
+    elif current_user.role == "elder":
+        elder_id = current_user.user_id
+    else:
+        elder_id = None
+
+    current_elder = None
+    if elder_id is not None:
+        row = get_db().execute("SELECT id, full_name FROM Elders WHERE id = ?", [elder_id]).fetchone()
+        if row:
+            current_elder = Elder(row[0], row[1])
+
+    return {"current_elder": current_elder}
 
 # Cleans up a database connection.
 @app.teardown_appcontext

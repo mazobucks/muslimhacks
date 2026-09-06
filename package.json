@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@elevenlabs/client": "^1.23.0"
+  }
+}
