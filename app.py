@@ -163,9 +163,10 @@ if not database_exists:
 
     db.execute("INSERT INTO Responsibilities (caregiver_id) VALUES (?)",
         [caregiver_user_id])
-
     db.commit()
 
+##db.execute("DELETE FROM TaskLogs")
+db.commit()
 
 # Gets a database connection.
 def get_db():
