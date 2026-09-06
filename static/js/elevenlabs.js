@@ -26,14 +26,16 @@ document.addEventListener("DOMContentLoaded", () => {
         // ElevenLabs' current widget-embed contract.
         widget.addEventListener("elevenlabs-convai:call", (event) => {
             event.detail.config.clientTools = {
-                add_task: async ({ title, time, scheduled_time, frequency, description }) => {
+                add_task: async ({ title, time, scheduled_time, scheduled_date, frequency, description }) => {
                     const payload = {
                         title: title || "",
                         description: description || "",
                         frequency: frequency || "one_time",
                         // The backend form field is "scheduled_time"; accept either
                         // name in case the agent passes "time" instead.
-                        scheduled_time: scheduled_time || time || ""
+                        scheduled_time: scheduled_time || time || "",
+                        // Required by the backend for anything other than one_time.
+                        scheduled_date: scheduled_date || ""
                     };
 
                     console.log("add_task called with:", payload);
@@ -46,7 +48,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             method: "POST",
                             credentials: "same-origin",
                             headers: {
-                                "Content-Type": "application/x-www-form-urlencoded"
+                                "Content-Type": "application/x-www-form-urlencoded",
+                                // Lets the backend tell this apart from a normal
+                                // browser form submit, so validation failures come
+                                // back as a real error status instead of a
+                                // redirect (which fetch would treat as success).
+                                "X-Requested-With": "fetch"
                             },
                             body: new URLSearchParams(payload).toString()
                         });
@@ -60,6 +67,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             let errorMessage = `Couldn't add the task (error ${response.status}).`;
                             if (response.status === 403) {
                                 errorMessage = "You don't have permission to add tasks for this elder.";
+                            } else if (response.status === 400) {
+                                errorMessage = "That reminder is missing some required info (like a start date for repeating reminders).";
                             }
 
                             showVoiceActionError(errorMessage);
