@@ -11,11 +11,11 @@
 
 <body>
     <nav class="topnav">
-        <a href="{{ url_for('caregiver') }}">home</a>
-        <a href="{{ url_for('add_meds') }}">addMeds</a>
-        <a href="{{ url_for('log_tasks') }}">logTask</a>
-        <a href="{{ url_for('caregiver') }}">settings</a>
-        <a href="{{ url_for('logout') }}">logout</a>
+        <a href="{{ url_for('caregiver') }}">CareGiver Home</a>
+        <a href="{{ url_for('add_meds') }}">Medication</a>
+        <a href="{{ url_for('log_tasks') }}">Tasks</a>
+        <a href="{{ url_for('caregiver') }}">Settings</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
     </nav>
     {% if current_user.is_authenticated %}
         <h1>Hi {{ current_user.name }}!</h1>

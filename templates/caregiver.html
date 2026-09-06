@@ -113,17 +113,6 @@
     </ul>
   </div>
 
-  <div class="card reminders-card">
-    <h3>reminders for elder</h3>
-    <ul id="reminder-list">
-      {% for r in reminders %}
-        <li>{{ r.title }} &mdash; {{ r.scheduled_time }}</li>
-      {% else %}
-        <li>No reminders yet</li>
-      {% endfor %}
-    </ul>
-  </div>
-
 </div>
 
 <div class="voice-btn-row">
