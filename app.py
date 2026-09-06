@@ -147,6 +147,7 @@ if not database_exists:
         from_user  INTEGER NOT NULL,
         to_user    INTEGER NOT NULL,
         message    VARCHAR(255) NOT NULL,
+        is_read    BOOLEAN NOT NULL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (from_user) REFERENCES Users(id),
         FOREIGN KEY (to_user) REFERENCES Users(id)
@@ -247,6 +248,11 @@ if not database_exists:
 # Keep existing databases compatible with reminder start dates.
 if "scheduled_date" not in [row[1] for row in db.execute("PRAGMA table_info(Reminders)").fetchall()]:
     db.execute("ALTER TABLE Reminders ADD COLUMN scheduled_date DATE")
+    db.commit()
+
+# Keep existing databases compatible with the notification read/unread state.
+if "is_read" not in [row[1] for row in db.execute("PRAGMA table_info(Notifications)").fetchall()]:
+    db.execute("ALTER TABLE Notifications ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0")
     db.commit()
 
 ##db.execute("DELETE FROM TaskLogs")
@@ -445,6 +451,7 @@ def medication_done(medication_id):
     reminder_id = get_or_create_task_reminder(current_user.user_id, medication[0], "medication", current_user.user_id)
     db.execute("INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
                          [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+    notify_caregivers(current_user.user_id, "medication", f"{current_user.name} took {medication[0]}.")
     db.commit()
     return redirect(url_for("elder"))
 
@@ -531,6 +538,11 @@ def toggle_reminder(reminder_id):
                 "INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
                 [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
         )
+        if current_user.role == "elder":
+            reminder_title = db.execute(
+                    "SELECT title FROM Reminders WHERE id = ?", [reminder_id]
+            ).fetchone()[0]
+            notify_caregivers(elder_id, "custom", f"{current_user.name} completed \u201c{reminder_title}\u201d.")
     db.commit()
     return redirect(url_for(redirect_endpoint))
 
@@ -647,6 +659,36 @@ def get_primary_caregiver(elder_id):
     return row[0] if row else None
 
 
+# Categories that map 1-to-1 with a column in Responsibilities.
+NOTIFIABLE_CATEGORIES = {"prayer", "medication", "custom"}
+
+
+def get_responsible_caregiver_ids(elder_id, category):
+    """All caregivers (primary or secondary) who are responsible for this
+    task category for this elder, and should be notified about it."""
+    if category not in NOTIFIABLE_CATEGORIES:
+        return []
+    db = get_db()
+    rows = db.execute(
+        f"""SELECT c.id FROM Caregivers c
+            JOIN Responsibilities r ON r.caregiver_id = c.id
+            WHERE c.elder_id = ? AND r.{category} = 1""",
+        [elder_id],
+    ).fetchall()
+    return [row[0] for row in rows]
+
+
+def notify_caregivers(elder_id, category, message):
+    """Notify every caregiver responsible for `category` that the elder
+    completed a task on their own."""
+    db = get_db()
+    for caregiver_id in get_responsible_caregiver_ids(elder_id, category):
+        db.execute(
+            "INSERT INTO Notifications (from_user, to_user, message) VALUES (?, ?, ?)",
+            [elder_id, caregiver_id, message],
+        )
+
+
 @app.route("/api/prayer/end", methods=["POST"])
 @login_required
 def end_prayer():
@@ -669,13 +711,9 @@ def end_prayer():
         [reminder_id, elder_id, status, datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
     )
 
-    caregiver_id = get_primary_caregiver(elder_id)
-    if caregiver_id:
+    if status == "done":
         message = f"{current_user.name} completed {prayer_name} ({rakahs_completed} rakah)."
-        db.execute(
-            "INSERT INTO Notifications (from_user, to_user, message) VALUES (?, ?, ?)",
-            [elder_id, caregiver_id, message],
-        )
+        notify_caregivers(elder_id, "prayer", message)
 
     db.commit()
     return {"ok": True}
@@ -733,10 +771,15 @@ def caregiver():
         if primary_row:
             primary_caregiver = Caregiver(primary_row[0], primary_row[1], primary_row[2], primary_row[3])
 
-    notifications = db.execute(
-        "SELECT * FROM Notifications WHERE to_user = ? ORDER BY created_at DESC LIMIT 20",
+    notification_rows = db.execute(
+        """SELECT id, message, created_at FROM Notifications
+           WHERE to_user = ? AND is_read = 0 ORDER BY created_at DESC LIMIT 20""",
         [current_user.user_id]   # <-- fixing the still-outstanding id/user_id bug while I'm here
     ).fetchall()
+    notifications = [
+        {"id": row[0], "message": row[1], "created_at": row[2]}
+        for row in notification_rows
+    ]
 
     return render_template(
         "caregiver.html",
@@ -747,6 +790,25 @@ def caregiver():
         is_primary=is_primary,
         primary_caregiver=primary_caregiver
     )
+
+@app.route("/notifications/<int:notification_id>/dismiss", methods=["POST"])
+@login_required
+def dismiss_notification(notification_id):
+    if current_user.role != "caregiver":
+        abort(403)
+
+    db = get_db()
+    # only mark it read if it actually belongs to this caregiver
+    db.execute(
+        "UPDATE Notifications SET is_read = 1 WHERE id = ? AND to_user = ?",
+        [notification_id, current_user.user_id]
+    )
+    db.commit()
+
+    if request.headers.get("X-Requested-With") == "fetch":
+        return {"ok": True}
+    return redirect(url_for("caregiver"))
+
 
 def get_linked_elder_id():
     """Returns the elder_id already linked to this caregiver, or None."""
@@ -1008,6 +1070,8 @@ def scan_medication_done(medication_id):
         "INSERT INTO TaskLogs (reminder_id, logged_by, status, logged_at) VALUES (?, ?, 'done', ?)",
         [reminder_id, current_user.user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
     )
+    if current_user.role == "elder":
+        notify_caregivers(elder_id, "medication", f"{current_user.name} took {medication[0]}.")
     db.commit()
     return {"ok": True, "status": "done"}
 

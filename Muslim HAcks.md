@@ -80,7 +80,7 @@ tasks:
 - responsiblities access
 
 - voice for prayer
-- voice assist for elder
+- voice assist for elder(onetime)
 - notifications of complettion to respective caregivers
 - medications adding is not working
 
