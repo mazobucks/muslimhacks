@@ -27,3 +27,10 @@ img {
     width: 100%;
     object-fit: contain;
 }
+.thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+  }

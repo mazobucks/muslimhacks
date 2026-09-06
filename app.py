@@ -199,7 +199,7 @@ def login():
         if user.role == 'caregiver':
             return redirect(url_for("caregiver"))
         else:
-            return redirect(url_for('elderhome'))
+            return redirect(url_for('home'))
 
     except Exception as e:
         print("Login error:", e)
@@ -533,6 +533,11 @@ def add_meds():
 
     db = get_db()
 
+    elder_row = db.execute(
+        "SELECT id, full_name FROM Elders WHERE id = ?", [elder_id]
+    ).fetchone()
+    elder = Elder(elder_row[0], elder_row[1])
+
     if request.method == "GET":
         medication_rows = db.execute(
             "SELECT id, elder_id, name, dosage, schedule_time, created_by "
@@ -543,7 +548,7 @@ def add_meds():
             Medication(row[0], row[1], row[2], row[3], row[4], row[5])
             for row in medication_rows
         ]
-        return render_template("meds.html", medications=medications)
+        return render_template("add_meds.html", elder=elder, medications=medications)
 
     name = request.form.get("name", "").strip()
     dosage = request.form.get("dosage", "").strip()
@@ -561,6 +566,29 @@ def add_meds():
 
     flash(f"{name} has been added.")
     return redirect(url_for("add_meds"))
+
+
+@app.route("/remove_medication/<int:medication_id>", methods=["POST"])
+@login_required
+def remove_medication(medication_id):
+    if current_user.role != "caregiver":
+        abort(403)
+
+    elder_id = get_linked_elder_id()
+    if elder_id is None:
+        abort(403)
+
+    db = get_db()
+    # only delete if this medication actually belongs to this caregiver's elder
+    db.execute(
+        "DELETE FROM Medications WHERE id = ? AND elder_id = ?",
+        [medication_id, elder_id]
+    )
+    db.commit()
+
+    flash("Medication removed.")
+    return redirect(url_for("add_meds"))
+
 
 # Cleans up a database connection.
 @app.teardown_appcontext

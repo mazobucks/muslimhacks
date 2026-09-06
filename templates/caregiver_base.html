@@ -5,14 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     {% block head %} {% endblock %}
 </head>
 
 <body>
     <nav class="topnav">
         <a href="{{ url_for('caregiver') }}">home</a>
-        <a href="{{ url_for('caregiver') }}">addMeds</a>
+        <a href="{{ url_for('add_meds') }}">addMeds</a>
         <a href="{{ url_for('caregiver') }}">logTask</a>
         <a href="{{ url_for('caregiver') }}">settings</a>
         <a href="{{ url_for('logout') }}">logout</a>

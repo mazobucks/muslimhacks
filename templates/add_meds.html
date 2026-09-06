@@ -1,8 +1,9 @@
 {% extends 'caregiver_base.html' %}
-{% block title %}View Medications{% endblock %}
+{% block title %}Add Medication{% endblock %}
 
 {% block content %}
-<h2>Add medication</h2>
+<h2>Medications for {{ elder.full_name }}</h2>
+<img class="thumb" src="https://api.dicebear.com/9.x/thumbs/svg?seed={{ elder.full_name }}">
 
 <form method="post" action="{{ url_for('add_meds') }}">
   <label for="name">Medication name</label>
@@ -27,6 +28,9 @@
       <strong>{{ med.name }}</strong>
       {% if med.dosage %} &mdash; {{ med.dosage }}{% endif %}
       {% if med.schedule_time %} &mdash; {{ med.schedule_time }}{% endif %}
+      <form method="post" action="{{ url_for('remove_medication', medication_id=med.id) }}" style="display:inline;">
+        <button type="submit">Remove</button>
+      </form>
     </li>
   {% else %}
     <li>No medications added yet.</li>
