@@ -77,6 +77,6 @@
 
 tasks:
 - encryption passwords
-
+- responsiblities access
 
 

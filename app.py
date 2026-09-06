@@ -379,7 +379,7 @@ def add_elder_reminder():
     scheduled_time = request.form.get("scheduled_time", "").strip()
     if not title or frequency not in {"one_time", "daily", "weekly"}:
         flash("A reminder title and valid frequency are required.")
-        return redirect(url_for("elder") if current_user.role == "elder" else url_for("caregiver_log_tasks"))
+        return redirect(url_for("elder") if current_user.role == "elder" else url_for("log_tasks"))
 
     db = get_db()
     db.execute(
