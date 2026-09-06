@@ -1,0 +1,106 @@
+.medication-scan-page {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.scanner-panel,
+.medication-details {
+    background: rgb(24, 24, 36);
+    border: 1px solid rgb(70, 70, 85);
+    border-radius: 14px;
+    padding: 1.25rem;
+}
+
+.scanner-panel h2,
+.medication-details h1 {
+    color: rgb(195, 145, 245);
+}
+
+#qr-reader {
+    width: 100%;
+    max-width: 560px;
+    margin: 1.25rem auto;
+    overflow: hidden;
+    border: 1px solid rgb(105, 105, 125);
+    border-radius: 10px;
+}
+
+#qr-reader video {
+    width: 100% !important;
+    border-radius: 8px;
+}
+
+#scan-status {
+    color: rgb(220, 220, 228);
+    min-height: 1.5rem;
+}
+
+.medication-details {
+    min-height: 360px;
+}
+
+.details-label {
+    color: rgb(195, 145, 245);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
+.medication-details h1 {
+    font-size: clamp(2.5rem, 7vw, 6rem);
+    line-height: 1;
+    overflow-wrap: anywhere;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .9rem 0;
+    border-top: 1px solid rgb(70, 70, 85);
+    font-size: 1.2rem;
+}
+
+.detail-row span {
+    color: rgb(190, 190, 205);
+}
+
+.detail-row strong {
+    text-align: right;
+}
+
+.log-medication-button {
+    width: 100%;
+    margin-top: 1.25rem;
+    padding: .85rem 1rem;
+    border: 0;
+    border-radius: 8px;
+    background: rgb(155, 80, 226);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.log-medication-button:hover:not(:disabled) {
+    background: rgb(175, 105, 238);
+}
+
+.log-medication-button:disabled {
+    background: rgb(70, 70, 85);
+    color: rgb(190, 190, 205);
+    cursor: not-allowed;
+}
+
+.log-medication-status {
+    min-height: 1.5rem;
+    margin-top: .65rem;
+    color: rgb(220, 220, 228);
+}
+
+@media (max-width: 800px) {
+    .medication-scan-page {
+        grid-template-columns: 1fr;
+    }
+}

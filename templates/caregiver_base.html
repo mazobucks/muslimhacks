@@ -11,6 +11,9 @@
 
 <body>
     <nav class="topnav">
+        <a class="nav-logo" href="{{ url_for('caregiver') }}" aria-label="Connect and Care home">
+            <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Connect and Care logo">
+        </a>
         <a href="{{ url_for('caregiver') }}">home</a>
         <a href="{{ url_for('add_meds') }}">addMeds</a>
         <a href="{{ url_for('log_tasks') }}">logTask</a>

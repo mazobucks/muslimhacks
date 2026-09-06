@@ -11,14 +11,20 @@
 
 <body>
     <nav>
+        <a class="nav-logo" href="{{ url_for('elder') }}" aria-label="Connect and Care home">
+            <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Connect and Care logo">
+        </a>
         <a href="/elder">Home</a>
+        <a href="{{ url_for('medication_scan') }}">Scan medication</a>
+        <a href="{{ url_for('prayer_check') }}">Prayer check</a>
     </nav>
     {% if current_user.is_authenticated %}
-        <h1>Hi {{ current_user.name }}!</h1>
+        <h1>Asalamualaikum {{ current_user.name }}!</h1>
     {% endif %}
     <div class="container">
         {% block content %} {% endblock %}
     </div>
+    {% block scripts %}{% endblock %}
 </body>
 
 </html>
