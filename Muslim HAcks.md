@@ -70,12 +70,13 @@
 
 * elder picks which caregiver gets which responsibility
 * caregiver Customizes settings for elder, and elder can approve
-* caregiver Signs up the elder
+* apply
 * elder signs up, approves new caregivers
 
 
 
-
+tasks:
+- encryption passwords
 
 
 
