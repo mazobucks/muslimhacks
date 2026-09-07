@@ -1349,6 +1349,21 @@ def inject_current_elder():
 
     return {"current_elder": current_elder}
 
+
+@app.route("/api/notifications")
+@login_required
+def api_notifications():
+    db = get_db()
+    rows = db.execute(
+        "SELECT id, from_user, message, created_at FROM Notifications "
+        "WHERE to_user = ? AND is_read = 0 ORDER BY created_at DESC LIMIT 20",
+        [current_user.user_id]
+    ).fetchall()
+    return jsonify([
+        {"id": r[0], "from_user": r[1], "message": r[2], "created_at": r[3]}
+        for r in rows
+    ])
+
 # Cleans up a database connection.
 @app.teardown_appcontext
 def cleanup(exception):
